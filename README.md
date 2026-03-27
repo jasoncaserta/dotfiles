@@ -97,7 +97,7 @@ These bindings work at the Ghostty level. The tmux ones send key sequences direc
 
 | Binding | Action |
 |---------|--------|
-| `Cmd+\`` | Toggle quick terminal (global) |
+| ``Cmd+` `` | Toggle quick terminal (global) |
 | `Ctrl+Tab` | Next tmux tab |
 | `Ctrl+Shift+Tab` | Previous tmux tab |
 | `Cmd+T` | New tmux tab |
