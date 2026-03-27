@@ -6,7 +6,28 @@ plugin_restore="$HOME/.tmux/plugins/tmux-resurrect/scripts/restore.sh"
 
 if [[ -f "$restore_file" ]]; then
   tmp_file="$(mktemp)"
-  awk -F '\t' '$1 != "state" { print }' "$restore_file" > "$tmp_file"
+  awk '
+    BEGIN {
+      prev = ""
+    }
+    /^(pane|window|grouped_session|state)\t/ {
+      if (prev != "" && prev !~ /^state\t/) {
+        print prev
+      }
+      prev = $0
+      next
+    }
+    {
+      if (prev != "") {
+        prev = prev " " $0
+      }
+    }
+    END {
+      if (prev != "" && prev !~ /^state\t/) {
+        print prev
+      }
+    }
+  ' "$restore_file" > "$tmp_file"
   cat "$tmp_file" > "$restore_file"
   rm -f "$tmp_file"
 fi

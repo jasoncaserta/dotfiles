@@ -18,6 +18,7 @@ Both Claude and Codex send notifications when they need attention or finish a tu
 | Elicitation / MCP | ✓ hook → "needs attention" | ✗ not available |
 
 The `codex` shell wrapper automatically passes `-c features.codex_hooks=true` to enable hook support. Both `claude/settings.json` and `codex/hooks.json` are included in the repo and set up by the installer.
+tmux-resurrect is also configured to relaunch `claude` and `codex` panes after restore, similar to how `htop` is restarted. This reopens the tools in the restored panes, but chat continuity still depends on whether the CLI itself supports resuming the prior conversation.
 
 **tmux attention indicator**
 When a notification fires for a background tmux tab, a 🔔 appears in the status bar for that tab. It clears automatically when you switch to it.
@@ -34,6 +35,7 @@ tmux automatically saves your workspace every minute and restores it on startup 
 The top-right tmux status bar shows `tmux restore: 32s ago` or `tmux restore: 2m ago`, based on the latest saved tmux snapshot.
 Continuum attempts a save every minute, but `tmux-resurrect` only keeps a new snapshot file when the tmux layout actually changed. If nothing changed, the status time may stay older than one minute.
 The restore flow uses a local wrapper script to sanitize tmux-resurrect state before restoring, which avoids the `(null):0: empty value` popup caused by empty client-session state in saved snapshots.
+tmux-resurrect uses the `pgrep` save strategy so pane commands are captured from the child process instead of just the parent shell, which is important for tools like Codex.
 
 **Window auto-rename**
 The tmux tab title updates to the currently running command and resets to `zsh` when it finishes.
