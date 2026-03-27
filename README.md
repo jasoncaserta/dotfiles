@@ -95,18 +95,36 @@ Export these in `~/.zprofile` to change the defaults.
 
 ## Key bindings
 
+### Ghostty
+
+These bindings work at the Ghostty level. The tmux ones send key sequences directly to tmux.
+
+| Binding | Action |
+|---------|--------|
+| `Cmd+\`` | Toggle quick terminal (global) |
+| `Ctrl+Tab` | Next tmux window |
+| `Ctrl+Shift+Tab` | Previous tmux window |
+| `Cmd+T` | New tmux window |
+| `Cmd+W` | Close tmux window |
+| `Cmd+Enter` | Toggle fullscreen |
+| `Cmd+Shift+Enter` | Zoom current split |
+| `Cmd+D` | New split right |
+| `Cmd+Shift+D` | New split down |
+| `Cmd+[` | Previous split |
+| `Cmd+]` | Next split |
+| `Cmd+F` | Search scrollback |
+| `Cmd+K` | Clear screen |
+
+### tmux
+
 tmux prefix is `Ctrl-A`.
 
 | Binding | Action |
 |---------|--------|
-| `prefix c` | New window (inherits current path) |
-| `prefix W` | Kill window |
 | `prefix \|` | Split horizontal |
 | `prefix -` | Split vertical |
 | `prefix h/j/k/l` | Navigate panes (vim-style) |
 | `prefix r` | Reload tmux config |
+| `prefix 0` | Jump to window 10 |
 | `M-Left / M-Right` | Previous / next window |
 | `Middle-click status bar` | Kill clicked window |
-| `prefix 0` | Jump to window 10 |
-
-Ghostty quick terminal is toggled with `Cmd+\`` (global shortcut).
