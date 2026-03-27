@@ -92,12 +92,59 @@ codex() {
   kill "$monitor_pid" 2>/dev/null || true
 }
 
+jason() {
+  case "${1:-help}" in
+    help)
+      cat <<'EOF'
+Jason terminal help
+
+Ghostty
+  Cmd+`            Toggle quick terminal
+  Ctrl+Tab         Next tmux tab
+  Ctrl+Shift+Tab   Previous tmux tab
+  Cmd+T            New tmux tab
+  Cmd+W            Close tmux tab
+  Cmd+Enter        Toggle fullscreen
+  Cmd+Shift+Enter  Zoom current split
+  Cmd+D            New split right
+  Cmd+Shift+D      New split down
+  Cmd+[            Previous split
+  Cmd+]            Next split
+  Cmd+F            Search scrollback
+  Cmd+K            Clear screen
+
+tmux (prefix Ctrl-A)
+  prefix |         Split horizontal
+  prefix -         Split vertical
+  prefix h/j/k/l   Navigate panes
+  prefix r         Reload tmux config
+  prefix Ctrl-s    Save tmux session
+  prefix Ctrl-r    Restore tmux session
+  prefix 0         Jump to window 10
+  Alt-Left         Previous window
+  Alt-Right        Next window
+  Middle-click     Kill clicked status-bar window
+EOF
+      ;;
+    *)
+      printf 'Unknown jason command: %s\nRun `jason help`.\n' "$1" >&2
+      return 1
+      ;;
+  esac
+}
+
 # Auto-attach Ghostty shells to a persistent tmux session.
 if command -v tmux >/dev/null 2>&1; then
   case $- in
     *i*)
       if [ -z "$TMUX" ] && [ "${TERM_PROGRAM:-}" = "ghostty" ] && [ -z "${NO_AUTO_TMUX:-}" ]; then
-        exec tmux new-session -A -s main
+        if ! tmux list-sessions >/dev/null 2>&1; then
+          tmux new-session -d -s main
+          if [ -x "$HOME/.tmux/plugins/tmux-resurrect/scripts/restore.sh" ] && [ -f "$HOME/.tmux/resurrect/last" ]; then
+            "$HOME/.tmux/plugins/tmux-resurrect/scripts/restore.sh" >/dev/null 2>&1
+          fi
+        fi
+        exec tmux attach-session -t main
       fi
       ;;
   esac

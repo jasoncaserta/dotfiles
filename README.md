@@ -29,7 +29,7 @@ Clicking a notification focuses Ghostty and switches to the exact tmux tab that 
 Opening Ghostty automatically attaches to (or creates) a persistent tmux session named `main`. Set `NO_AUTO_TMUX=1` to skip this.
 
 **tmux restore after reboot**
-tmux automatically saves your workspace every minute and restores it on startup after a reboot via `tmux-resurrect` + `tmux-continuum`. tmux also saves on client detach, and you can force a save manually with `prefix Ctrl-s`.
+tmux automatically saves your workspace every minute and restores it on startup after a reboot via `tmux-resurrect` + `tmux-continuum`. Ghostty's first tmux launch also runs an explicit restore from the latest snapshot before attaching to `main`, so startup restore does not depend only on the plugin's background timing. tmux also saves on client detach, and you can force a save manually with `prefix Ctrl-s`.
 
 **Window auto-rename**
 The tmux tab title updates to the currently running command and resets to `zsh` when it finishes.
@@ -96,6 +96,8 @@ After a reboot, open Ghostty and tmux will reattach to `main` and restore the la
 Export these in `~/.zprofile` to change the defaults.
 
 ## Key bindings
+
+Run `jason help` in a shell to print these key bindings in the terminal.
 
 ### Ghostty
 
