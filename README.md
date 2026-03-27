@@ -42,13 +42,29 @@ The tmux window title updates to the currently running command and resets to `zs
 
 ## Install
 
+There are two scripts depending on your use case.
+
+### Your own machine (`creator.sh`)
+
+Sets up full symlinks so edits to your dotfiles go directly into the repo. Edit normally, commit, and push — `git pull` on any other machine picks up changes instantly.
+
+```bash
+git clone https://github.com/jasoncaserta/dotfiles.git ~/Projects/dotfiles
+cd ~/Projects/dotfiles
+./creator.sh
+```
+
+### Someone else's machine (`install.sh`)
+
+Non-destructive — never replaces existing config files. Instead it appends an include directive to each one (`source`, `source-file`, `config-file`, `dofile`) so existing settings are preserved. For Claude and Codex it merges only the hook events that aren't already defined. Re-running is safe — all steps are idempotent.
+
 ```bash
 git clone https://github.com/jasoncaserta/dotfiles.git ~/Projects/dotfiles
 cd ~/Projects/dotfiles
 ./install.sh
 ```
 
-The installer is non-destructive — it never replaces your existing config files. Instead it appends an include directive to each one (e.g. `source`, `source-file`, `config-file`, `dofile`) so your existing settings are preserved. For Claude and Codex, it merges only the hook events that aren't already defined. Re-running the installer is safe — all steps are idempotent.
+Since the include directives point at the repo files, `git pull` is all you need to pick up changes — no need to re-run `install.sh` unless new files are added.
 
 ## Post-install
 

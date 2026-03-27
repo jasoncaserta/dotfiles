@@ -10,9 +10,14 @@ yellow() { printf '\033[0;33m%s\033[0m\n' "$*"; }
 red()    { printf '\033[0;31m%s\033[0m\n' "$*"; }
 
 # Append $line to $file only if $line is not already present.
+# Skips files that are already symlinks into this repo (already "included").
 append_if_missing() {
   local file="$1" line="$2"
   mkdir -p "$(dirname "$file")"
+  if [[ -L "$file" && "$(readlink "$file")" == "$DOTFILES"* ]]; then
+    green "  already symlinked to repo (skipped): $file"
+    return
+  fi
   if [[ ! -f "$file" ]]; then
     printf '%s\n' "$line" > "$file"
     green "  created $file"
