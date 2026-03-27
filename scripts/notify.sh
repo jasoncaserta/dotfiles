@@ -29,5 +29,7 @@ fi
 
 if [[ -n "$TARGET" ]] && command -v tmux >/dev/null 2>&1; then
     tmux set-option -wq -t "$TARGET" @needs_attention 1 2>/dev/null
-    tmux refresh-client -S 2>/dev/null
+    if tmux list-clients >/dev/null 2>&1 && [[ -n "$(tmux list-clients 2>/dev/null)" ]]; then
+        tmux refresh-client -S 2>/dev/null
+    fi
 fi

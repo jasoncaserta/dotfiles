@@ -13,7 +13,9 @@ function showNotify(title, message, windowId)
                 end
                 local client, _ = hs.execute(tmux .. " list-clients -F '#{client_activity} #{client_name}' | sort -rn | head -1 | awk '{print $2}'")
                 client = client:gsub("%s+$", "")
-                hs.execute(tmux .. " switch-client -c '" .. client .. "' -t '" .. windowId .. "' 2>/dev/null")
+                if client ~= "" then
+                    hs.execute(tmux .. " switch-client -c '" .. client .. "' -t '" .. windowId .. "' 2>/dev/null")
+                end
             end)
         end
     end, {
