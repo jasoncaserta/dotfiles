@@ -1,0 +1,98 @@
+# Ghostty shell integration for shells launched inside tmux or after shell switches.
+if [ -n "${GHOSTTY_RESOURCES_DIR:-}" ] && [ -r "${GHOSTTY_RESOURCES_DIR}/shell-integration/zsh/ghostty-integration" ]; then
+  builtin source "${GHOSTTY_RESOURCES_DIR}/shell-integration/zsh/ghostty-integration"
+fi
+
+# Command-finish alerts for long-running commands.
+autoload -Uz add-zsh-hook
+typeset -g _terminal_alert_started_at=0
+typeset -g _terminal_alert_command=''
+typeset -g TERMINAL_ALERT_MIN_SECONDS=${TERMINAL_ALERT_MIN_SECONDS:-3}
+
+_terminal_alert_preexec() {
+  _terminal_alert_started_at=$SECONDS
+  _terminal_alert_command=$1
+}
+
+_terminal_alert_precmd() {
+  (( _terminal_alert_started_at > 0 )) || return 0
+
+  local runtime=$(( SECONDS - _terminal_alert_started_at ))
+  local command_text=${_terminal_alert_command%%$'\n'*}
+  local notify_message=${command_text[1,60]:-"Command complete"}
+  local tmux_window_id=''
+
+  _terminal_alert_started_at=0
+  _terminal_alert_command=''
+
+  (( runtime >= TERMINAL_ALERT_MIN_SECONDS )) || return 0
+
+  if [[ -n "${TMUX_PANE:-}" ]] && command -v tmux >/dev/null 2>&1; then
+    tmux_window_id=$(tmux display-message -p -t "${TMUX_PANE}" '#{window_id}' 2>/dev/null || printf '')
+  fi
+
+  ("$HOME/.notify.sh" "$notify_message" "done!" "$tmux_window_id") >/dev/null 2>&1 &!
+}
+
+_tmux_rename_preexec() {
+  if [[ -n "${TMUX_PANE:-}" ]] && command -v tmux >/dev/null 2>&1; then
+    local cmd="${1%% *}"
+    tmux rename-window -t "${TMUX_PANE}" "${cmd:t}" 2>/dev/null
+  fi
+}
+
+_tmux_rename_precmd() {
+  if [[ -n "${TMUX_PANE:-}" ]] && command -v tmux >/dev/null 2>&1; then
+    tmux rename-window -t "${TMUX_PANE}" "zsh" 2>/dev/null
+  fi
+}
+
+add-zsh-hook preexec _terminal_alert_preexec
+add-zsh-hook preexec _tmux_rename_preexec
+add-zsh-hook precmd _terminal_alert_precmd
+add-zsh-hook precmd _tmux_rename_precmd
+
+# Claude wrapper: _tmux_rename_preexec handles window rename; no extra logic needed.
+claude() {
+  command claude "$@"
+}
+
+codex() {
+  local pane="$TMUX_PANE"
+
+  # Poll the pane content for question/permission UI and notify.
+  local monitor_pid
+  if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1; then
+    (
+      local waiting=0 content
+      while true; do
+        content=$(tmux capture-pane -t "$pane" -p 2>/dev/null)
+        if printf '%s' "$content" | grep -qE 'Question [0-9]+/[0-9]+|Would you like to run'; then
+          if (( waiting == 0 )); then
+            "$HOME/.notify.sh" "Codex" "needs attention" "$pane"
+            waiting=1
+          fi
+        else
+          waiting=0
+        fi
+        sleep 1
+      done
+    ) &
+    monitor_pid=$!
+  fi
+
+  command codex -c features.codex_hooks=true "$@"
+
+  kill "$monitor_pid" 2>/dev/null || true
+}
+
+# Auto-attach Ghostty shells to a persistent tmux session.
+if command -v tmux >/dev/null 2>&1; then
+  case $- in
+    *i*)
+      if [ -z "$TMUX" ] && [ "${TERM_PROGRAM:-}" = "ghostty" ] && [ -z "${NO_AUTO_TMUX:-}" ]; then
+        exec tmux new-session -A -s main
+      fi
+      ;;
+  esac
+fi
