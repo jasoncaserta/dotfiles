@@ -68,14 +68,7 @@ To get updates: `git pull && ./install.sh`. Re-running `install.sh` is safe — 
 
 ## Post-install
 
-**1. Git identity**
-
-```bash
-cp ~/Projects/dotfiles/git/gitconfig.template ~/.gitconfig
-# edit ~/.gitconfig and fill in your name and email
-```
-
-**2. Hammerspoon permissions**
+**1. Hammerspoon permissions**
 
 Open System Settings → Privacy & Security and grant Hammerspoon:
 - Accessibility
@@ -83,13 +76,13 @@ Open System Settings → Privacy & Security and grant Hammerspoon:
 
 Then reload: Hammerspoon menu bar icon → Reload Config.
 
-**3. Reload tmux** (inside an active tmux session)
+**2. Reload tmux** (inside an active tmux session)
 
 ```bash
 tmux source ~/.tmux.conf
 ```
 
-**4. Restart your shell** or open a new Ghostty window for zsh changes to take effect.
+**3. Restart your shell** or open a new Ghostty window for zsh changes to take effect.
 
 ## Customization
 

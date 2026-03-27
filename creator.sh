@@ -62,16 +62,12 @@ echo "  3. On any other machine: git pull  (changes are live immediately)"
 echo
 echo "Complete these steps if this is a fresh machine:"
 echo
-echo "  1. Set up git identity (if not already configured):"
-echo "       cp $DOTFILES/git/gitconfig.template ~/.gitconfig"
-echo "       # then edit ~/.gitconfig and fill in your name and email"
-echo
-echo "  2. Grant Hammerspoon permissions (System Settings → Privacy & Security):"
+echo "  1. Grant Hammerspoon permissions (System Settings → Privacy & Security):"
 echo "       - Accessibility"
 echo "       - Notifications"
 echo "     Then reload: Hammerspoon menu bar icon → Reload Config"
 echo
-echo "  3. Reload tmux config (inside an active tmux session):"
+echo "  2. Reload tmux config (inside an active tmux session):"
 echo "       tmux source ~/.tmux.conf"
 echo
-echo "  4. Start a new shell (or open Ghostty) to apply zsh changes."
+echo "  3. Start a new shell (or open Ghostty) to apply zsh changes."
