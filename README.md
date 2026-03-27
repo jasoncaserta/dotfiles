@@ -29,10 +29,11 @@ Clicking a notification focuses Ghostty and switches to the exact tmux tab that 
 Opening Ghostty automatically attaches to (or creates) a persistent tmux session named `main`. Set `NO_AUTO_TMUX=1` to skip this.
 
 **tmux restore after reboot**
-tmux automatically saves your workspace every minute and restores it on startup after a reboot via `tmux-resurrect` + `tmux-continuum`. Ghostty's first tmux launch also runs an explicit restore from the latest snapshot before attaching to `main`, so startup restore does not depend only on the plugin's background timing. tmux also saves on client detach, and you can force a save manually with `prefix Ctrl-s`.
+tmux automatically saves your workspace every minute and restores it on startup after a reboot via `tmux-resurrect` + `tmux-continuum`. On a fresh Ghostty launch after tmux is not running, you get an interactive restore prompt with the latest snapshot age and a default `Yes` selection. Press `Enter` to restore, or move to `No` with the arrow keys to start a clean `main` session instead. tmux also saves on client detach, and you can force a save manually with `prefix Ctrl-s`.
 
 The top-right tmux status bar shows `tmux restore: 32s ago` or `tmux restore: 2m ago`, based on the latest saved tmux snapshot.
 Continuum attempts a save every minute, but `tmux-resurrect` only keeps a new snapshot file when the tmux layout actually changed. If nothing changed, the status time may stay older than one minute.
+The restore flow uses a local wrapper script to sanitize tmux-resurrect state before restoring, which avoids the `(null):0: empty value` popup caused by empty client-session state in saved snapshots.
 
 **Window auto-rename**
 The tmux tab title updates to the currently running command and resets to `zsh` when it finishes.
@@ -87,7 +88,7 @@ tmux source ~/.tmux.conf
 
 **3. Restart your shell** or open a new Ghostty window for zsh changes to take effect.
 
-After a reboot, open Ghostty and tmux will reattach to `main` and restore the last saved session automatically.
+After a reboot, open Ghostty and choose whether to restore the latest tmux snapshot. Press `Enter` to accept the default `Yes`.
 
 ## Customization
 
