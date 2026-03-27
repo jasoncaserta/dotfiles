@@ -1,0 +1,46 @@
+{
+  "preferredNotifChannel": "terminal_bell",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.notify.sh \"Claude\" \"needs attention\" \"$TMUX_PANE\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.notify.sh \"Claude\" \"done!\" \"$TMUX_PANE\""
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.notify.sh \"Claude\" \"needs attention\" \"$TMUX_PANE\""
+          }
+        ]
+      }
+    ],
+    "Elicitation": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.notify.sh \"Claude\" \"needs attention\" \"$TMUX_PANE\""
+          }
+        ]
+      }
+    ]
+  }
+}

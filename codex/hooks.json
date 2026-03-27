@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.notify.sh \"Codex\" \"done!\" \"$TMUX_PANE\""
+          }
+        ]
+      }
+    ]
+  }
+}

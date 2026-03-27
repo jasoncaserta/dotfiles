@@ -17,7 +17,7 @@ Both Claude and Codex send notifications when they need attention or finish a tu
 | Permission prompt | ✓ hook → "needs attention" | ✓ polling → "needs attention" |
 | Elicitation / MCP | ✓ hook → "needs attention" | ✗ not available |
 
-The `codex` shell wrapper automatically passes `-c features.codex_hooks=true` to enable hook support.
+The `codex` shell wrapper automatically passes `-c features.codex_hooks=true` to enable hook support. Both `claude/settings.json` and `codex/hooks.json` are included and symlinked by the installer.
 
 **tmux attention indicator**
 When a notification fires for a background tmux window, a 🔔 appears in the status bar for that window. It clears automatically when you switch to the window.
@@ -48,7 +48,7 @@ cd ~/Projects/dotfiles
 ./install.sh
 ```
 
-The installer symlinks each config file to its proper location. Existing files are backed up as `<file>.bak` before being replaced.
+The installer is non-destructive — it never replaces your existing config files. Instead it appends an include directive to each one (e.g. `source`, `source-file`, `config-file`, `dofile`) so your existing settings are preserved. For Claude and Codex, it merges only the hook events that aren't already defined. Re-running the installer is safe — all steps are idempotent.
 
 ## Post-install
 
