@@ -7,17 +7,8 @@ Ghostty + tmux + zsh setup for macOS with smart terminal notifications.
 **Notifications for long-running commands**
 Any command that takes longer than 3 seconds triggers a macOS notification when it finishes. The notification title shows the command name and clicking it focuses Ghostty and jumps directly to the tmux window where it ran. Threshold is configurable via `TERMINAL_ALERT_MIN_SECONDS`.
 
-**tmux attention indicator**
-When a notification fires for a background tmux window, a 🔔 appears in the status bar for that window. It clears automatically when you switch to the window.
-
-**Auto-attach to a persistent tmux session**
-Opening Ghostty automatically attaches to (or creates) a persistent tmux session named `main`. Set `NO_AUTO_TMUX=1` to skip this.
-
-**Window auto-rename**
-The tmux window title updates to the currently running command and resets to `zsh` when it finishes.
-
 **Claude and Codex support**
-Both Claude and Codex send notifications when they need attention or finish a turn. Claude uses hooks; Codex uses pane-content polling.
+Both Claude and Codex send notifications when they need attention or finish a turn. Claude uses hooks; Codex uses pane-content polling where no hook is available (hooks for codex are limited and currently in beta).
 
 | Trigger | Claude | Codex |
 |---------|--------|-------|
@@ -26,8 +17,19 @@ Both Claude and Codex send notifications when they need attention or finish a tu
 | Permission prompt | ✓ hook → "needs attention" | ✓ polling → "needs attention" |
 | Elicitation / MCP | ✓ hook → "needs attention" | ✗ not available |
 
+The `codex` shell wrapper automatically passes `-c features.codex_hooks=true` to enable hook support.
+
+**tmux attention indicator**
+When a notification fires for a background tmux window, a 🔔 appears in the status bar for that window. It clears automatically when you switch to the window.
+
 **Notification click navigation**
 Clicking a notification focuses Ghostty and switches to the exact tmux window that triggered it, handled via Hammerspoon.
+
+**Auto-attach to a persistent tmux session**
+Opening Ghostty automatically attaches to (or creates) a persistent tmux session named `main`. Set `NO_AUTO_TMUX=1` to skip this.
+
+**Window auto-rename**
+The tmux window title updates to the currently running command and resets to `zsh` when it finishes.
 
 ## Requirements
 
