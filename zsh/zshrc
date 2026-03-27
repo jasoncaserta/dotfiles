@@ -52,8 +52,11 @@ add-zsh-hook preexec _tmux_rename_preexec
 add-zsh-hook precmd _terminal_alert_precmd
 add-zsh-hook precmd _tmux_rename_precmd
 
-# Claude wrapper: _tmux_rename_preexec handles window rename; no extra logic needed.
 claude() {
+  local pane="$TMUX_PANE"
+  if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1; then
+    tmux rename-window -t "$pane" "claude" 2>/dev/null
+  fi
   command claude "$@"
 }
 
