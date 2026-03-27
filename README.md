@@ -29,7 +29,7 @@ Clicking a notification focuses Ghostty and switches to the exact tmux tab that 
 Opening Ghostty automatically attaches to (or creates) a persistent tmux session named `main`. Set `NO_AUTO_TMUX=1` to skip this.
 
 **tmux restore after reboot**
-tmux automatically saves your workspace every 15 minutes and restores it on startup after a reboot via `tmux-resurrect` + `tmux-continuum`.
+tmux automatically saves your workspace every minute and restores it on startup after a reboot via `tmux-resurrect` + `tmux-continuum`. tmux also saves on client detach, and you can force a save manually with `prefix Ctrl-s`.
 
 **Window auto-rename**
 The tmux tab title updates to the currently running command and resets to `zsh` when it finishes.
