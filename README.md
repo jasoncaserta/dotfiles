@@ -16,8 +16,15 @@ Opening Ghostty automatically attaches to (or creates) a persistent tmux session
 **Window auto-rename**
 The tmux window title updates to the currently running command and resets to `zsh` when it finishes.
 
-**Codex support**
-Running `codex` starts a background monitor that sends a notification whenever Codex is waiting for input ("needs attention"). The monitor cleans up on exit.
+**Claude and Codex support**
+Both Claude and Codex send notifications when they need attention or finish a turn. Claude uses hooks; Codex uses pane-content polling.
+
+| Trigger | Claude | Codex |
+|---------|--------|-------|
+| Turn done | ✓ hook → "done!" | ✓ hook → "done!" |
+| Asks a question | ✓ hook → "needs attention" | ✓ polling → "needs attention" |
+| Permission prompt | ✓ hook → "needs attention" | ✓ polling → "needs attention" |
+| Elicitation / MCP | ✓ hook → "needs attention" | ✗ not available |
 
 **Notification click navigation**
 Clicking a notification focuses Ghostty and switches to the exact tmux window that triggered it, handled via Hammerspoon.
