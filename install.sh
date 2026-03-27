@@ -95,20 +95,15 @@ fi
 
 # ── role selection ────────────────────────────────────────────────────────────
 
-echo
-echo "Are you a leader or a follower?"
-echo
-echo "  leader   — your machine, edits go directly into the repo (full symlinks)"
-echo "  follower — adds features non-destructively alongside your existing config"
-echo
-printf 'Enter role [leader/follower]: '
-read -r role
-
-case "$role" in
-  leader|Leader|LEADER)     role=leader ;;
-  follower|Follower|FOLLOWER) role=follower ;;
+role=follower
+case "${1:-}" in
+  "")
+    ;;
+  --leader)
+    role=leader
+    ;;
   *)
-    red "Unknown role '$role'. Please enter 'leader' or 'follower'."
+    red "Usage: ./install.sh [--leader]"
     exit 1
     ;;
 esac

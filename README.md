@@ -48,7 +48,13 @@ cd ~/Projects/dotfiles
 ./install.sh
 ```
 
-The installer asks whether you are a **leader** or a **follower**.
+`./install.sh` installs the **follower** setup by default.
+
+Use leader mode explicitly:
+
+```bash
+./install.sh --leader
+```
 
 **Leader** — sets up full symlinks so edits to your dotfiles (e.g. `~/.zshrc`) write directly into the repo. Just commit and push. `git pull` on any other machine picks up changes immediately.
 
