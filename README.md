@@ -28,6 +28,9 @@ Clicking a notification focuses Ghostty and switches to the exact tmux tab that 
 **Auto-attach to a persistent tmux session**
 Opening Ghostty automatically attaches to (or creates) a persistent tmux session named `main`. Set `NO_AUTO_TMUX=1` to skip this.
 
+**tmux restore after reboot**
+tmux automatically saves your workspace every 15 minutes and restores it on startup after a reboot via `tmux-resurrect` + `tmux-continuum`.
+
 **Window auto-rename**
 The tmux tab title updates to the currently running command and resets to `zsh` when it finishes.
 
@@ -76,9 +79,12 @@ Then reload: Hammerspoon menu bar icon → Reload Config.
 
 ```bash
 tmux source ~/.tmux.conf
+~/.tmux/plugins/tpm/bin/install_plugins
 ```
 
 **3. Restart your shell** or open a new Ghostty window for zsh changes to take effect.
+
+After a reboot, open Ghostty and tmux will reattach to `main` and restore the last saved session automatically.
 
 ## Customization
 
@@ -121,6 +127,8 @@ tmux prefix is `Ctrl-A`.
 | `prefix -` | Split vertical |
 | `prefix h/j/k/l` | Navigate panes (vim-style) |
 | `prefix r` | Reload tmux config |
+| `prefix Ctrl-s` | Save tmux session immediately |
+| `prefix Ctrl-r` | Restore tmux session manually |
 | `prefix 0` | Jump to window 10 |
 | `M-Left / M-Right` | Previous / next window |
 | `Middle-click status bar` | Kill clicked window |

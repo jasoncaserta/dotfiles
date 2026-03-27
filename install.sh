@@ -24,6 +24,21 @@ link() {
   green "  linked $dst"
 }
 
+ensure_git_clone() {
+  local repo="$1" dst="$2"
+  mkdir -p "$(dirname "$dst")"
+  if [[ -d "$dst/.git" ]]; then
+    green "  already present (skipped): $dst"
+    return
+  fi
+  if ! command -v git >/dev/null 2>&1; then
+    yellow "  git not found; skipped clone for $repo"
+    return
+  fi
+  git clone "$repo" "$dst"
+  green "  cloned $dst"
+}
+
 # Append $line to $file only if $line is not already present.
 # Skips files that are already symlinks into this repo (already "included").
 append_if_missing() {
@@ -144,6 +159,8 @@ else
   merge_hooks_json "$DOTFILES/codex/hooks.json"     "$HOME/.codex/hooks.json"
 fi
 
+ensure_git_clone "https://github.com/tmux-plugins/tpm" "$HOME/.tmux/plugins/tpm"
+
 # ── post-install ──────────────────────────────────────────────────────────────
 
 echo
@@ -168,5 +185,8 @@ echo "     Then reload: Hammerspoon menu bar icon → Reload Config"
 echo
 echo "  2. Reload tmux config (inside an active tmux session):"
 echo "       tmux source ~/.tmux.conf"
+echo "       ~/.tmux/plugins/tpm/bin/install_plugins"
 echo
 echo "  3. Start a new shell (or open Ghostty) to apply zsh changes."
+echo
+echo "After reboot, reopening Ghostty will auto-attach tmux and restore your last saved layout."
