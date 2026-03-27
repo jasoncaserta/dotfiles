@@ -31,6 +31,9 @@ Opening Ghostty automatically attaches to (or creates) a persistent tmux session
 **tmux restore after reboot**
 tmux automatically saves your workspace every minute and restores it on startup after a reboot via `tmux-resurrect` + `tmux-continuum`. Ghostty's first tmux launch also runs an explicit restore from the latest snapshot before attaching to `main`, so startup restore does not depend only on the plugin's background timing. tmux also saves on client detach, and you can force a save manually with `prefix Ctrl-s`.
 
+The top-right tmux status bar shows `tmux restore: 32s ago` or `tmux restore: 2m ago`, based on the latest saved tmux snapshot.
+Continuum attempts a save every minute, but `tmux-resurrect` only keeps a new snapshot file when the tmux layout actually changed. If nothing changed, the status time may stay older than one minute.
+
 **Window auto-rename**
 The tmux tab title updates to the currently running command and resets to `zsh` when it finishes.
 
