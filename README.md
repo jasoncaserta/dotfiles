@@ -42,29 +42,19 @@ The tmux tab title updates to the currently running command and resets to `zsh` 
 
 ## Install
 
-### Leader
-
-Run `creator.sh` to set up full symlinks. Edits to your dotfiles (e.g. `~/.zshrc`) write directly into the repo — just commit and push.
-
-```bash
-git clone https://github.com/jasoncaserta/dotfiles.git ~/Projects/dotfiles
-cd ~/Projects/dotfiles
-./creator.sh
-```
-
-To get updates from another machine: `git pull` — changes are live immediately.
-
-### Follower
-
-Run `install.sh`. It never touches your existing config files — it appends include directives (`source`, `source-file`, `config-file`, `dofile`) to your existing files so your own settings are preserved alongside these features. For Claude and Codex hooks it merges only events not already defined in your config.
-
 ```bash
 git clone https://github.com/jasoncaserta/dotfiles.git ~/Projects/dotfiles
 cd ~/Projects/dotfiles
 ./install.sh
 ```
 
-To get updates: `git pull && ./install.sh`. Re-running `install.sh` is safe — all steps are idempotent. Behavior changes to existing features are picked up by `git pull` alone; new features require re-running `install.sh` to register new include directives or hook events.
+The installer asks whether you are a **leader** or a **follower**.
+
+**Leader** — sets up full symlinks so edits to your dotfiles (e.g. `~/.zshrc`) write directly into the repo. Just commit and push. `git pull` on any other machine picks up changes immediately.
+
+**Follower** — never touches your existing config files. Appends include directives (`source`, `source-file`, `config-file`, `dofile`) alongside your existing settings. For Claude and Codex hooks it merges only events not already defined. Re-running is safe — all steps are idempotent.
+
+To get updates as a follower: `git pull && ./install.sh`. Behavior changes to existing features are picked up by `git pull` alone; new features require re-running `install.sh`.
 
 ## Post-install
 
