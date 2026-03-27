@@ -62,6 +62,9 @@ claude() {
 
 codex() {
   local pane="$TMUX_PANE"
+  if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1; then
+    tmux rename-window -t "$pane" "codex" 2>/dev/null
+  fi
 
   # Poll the pane content for question/permission UI and notify.
   local monitor_pid
