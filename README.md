@@ -5,7 +5,7 @@ Ghostty + tmux + zsh setup for macOS with smart terminal notifications.
 ## Features
 
 **Notifications for long-running commands**
-Any command that takes longer than 3 seconds triggers a macOS notification when it finishes. The notification title shows the command name and clicking it focuses Ghostty and jumps directly to the tmux window where it ran. Threshold is configurable via `TERMINAL_ALERT_MIN_SECONDS`.
+Any command that takes longer than 3 seconds triggers a macOS notification when it finishes. The notification title shows the command name and clicking it focuses Ghostty and jumps directly to the tmux tab where it ran. Threshold is configurable via `TERMINAL_ALERT_MIN_SECONDS`.
 
 **Claude and Codex support**
 Both Claude and Codex send notifications when they need attention or finish a turn. Claude uses hooks; Codex uses pane-content polling where no hook is available (hooks for codex are limited and currently in beta).
@@ -20,16 +20,16 @@ Both Claude and Codex send notifications when they need attention or finish a tu
 The `codex` shell wrapper automatically passes `-c features.codex_hooks=true` to enable hook support. Both `claude/settings.json` and `codex/hooks.json` are included in the repo and set up by the installer.
 
 **tmux attention indicator**
-When a notification fires for a background tmux window, a 🔔 appears in the status bar for that window. It clears automatically when you switch to the window.
+When a notification fires for a background tmux tab, a 🔔 appears in the status bar for that tab. It clears automatically when you switch to it.
 
 **Notification click navigation**
-Clicking a notification focuses Ghostty and switches to the exact tmux window that triggered it, handled via Hammerspoon.
+Clicking a notification focuses Ghostty and switches to the exact tmux tab that triggered it, handled via Hammerspoon.
 
 **Auto-attach to a persistent tmux session**
 Opening Ghostty automatically attaches to (or creates) a persistent tmux session named `main`. Set `NO_AUTO_TMUX=1` to skip this.
 
 **Window auto-rename**
-The tmux window title updates to the currently running command and resets to `zsh` when it finishes.
+The tmux tab title updates to the currently running command and resets to `zsh` when it finishes.
 
 ## Requirements
 
@@ -102,10 +102,10 @@ These bindings work at the Ghostty level. The tmux ones send key sequences direc
 | Binding | Action |
 |---------|--------|
 | `Cmd+\`` | Toggle quick terminal (global) |
-| `Ctrl+Tab` | Next tmux window |
-| `Ctrl+Shift+Tab` | Previous tmux window |
-| `Cmd+T` | New tmux window |
-| `Cmd+W` | Close tmux window |
+| `Ctrl+Tab` | Next tmux tab |
+| `Ctrl+Shift+Tab` | Previous tmux tab |
+| `Cmd+T` | New tmux tab |
+| `Cmd+W` | Close tmux tab |
 | `Cmd+Enter` | Toggle fullscreen |
 | `Cmd+Shift+Enter` | Zoom current split |
 | `Cmd+D` | New split right |
