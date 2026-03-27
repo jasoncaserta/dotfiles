@@ -30,11 +30,10 @@ Clicking a notification focuses Ghostty and switches to the exact tmux tab that 
 Opening Ghostty automatically attaches to (or creates) a persistent tmux session named `main`. Set `NO_AUTO_TMUX=1` to skip this.
 
 **tmux restore after reboot**
-tmux automatically saves your workspace every minute and restores it on startup after a reboot via `tmux-resurrect` + `tmux-continuum`. On a fresh Ghostty launch after tmux is not running, you get an interactive restore prompt with the latest snapshot age and a default `Yes` selection. Press `Enter` to restore, or move to `No` with the arrow keys to start a clean `main` session instead. tmux also saves on client detach, and you can force a save manually with `prefix Ctrl-s`.
+tmux restores from the latest manual snapshot on startup after a reboot via `tmux-resurrect` + `tmux-continuum`. Autosave is currently disabled, so the restore point only changes when you save manually with `prefix Ctrl-s`. On a fresh Ghostty launch after tmux is not running, you get an interactive restore prompt with the latest snapshot age and a default `Yes` selection. Press `Enter` to restore, or move to `No` with the arrow keys to start a clean `main` session instead. When you choose `Yes`, Ghostty now attaches to `main` first and then runs the restore inside tmux, which avoids the clientless startup path that could collapse the restored layout.
 
-The top-right tmux status bar shows `tmux restore: 32s ago` or `tmux restore: 2m ago`, based on the latest saved tmux snapshot.
-Continuum attempts a save every minute, but `tmux-resurrect` only keeps a new snapshot file when the tmux layout actually changed. If nothing changed, the status time may stay older than one minute.
-The restore flow uses a local wrapper script to sanitize tmux-resurrect state before restoring, which avoids the `(null):0: empty value` popup caused by empty client-session state in saved snapshots.
+The top-right tmux status bar shows `tmux save: 32s ago` or `tmux save: 2m ago`, based on the latest saved tmux snapshot.
+The restore flow uses a local wrapper script to sanitize tmux-resurrect state before restoring. It now restores from a temporary sanitized copy of the snapshot and drops only invalid `state` rows, which avoids the `(null):0: empty value` popup without rewriting the saved snapshot on disk.
 tmux-resurrect uses the `pgrep` save strategy so pane commands are captured from the child process instead of just the parent shell, which is important for tools like Codex.
 
 **Window auto-rename**
