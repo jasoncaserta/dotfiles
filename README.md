@@ -17,7 +17,7 @@ Both Claude and Codex send notifications when they need attention or finish a tu
 | Permission prompt | ✓ hook → "needs attention" | ✓ polling → "needs attention" |
 | Elicitation / MCP | ✓ hook → "needs attention" | ✗ not available |
 
-The `codex` shell wrapper automatically passes `-c features.codex_hooks=true` to enable hook support. Both `claude/settings.json` and `codex/hooks.json` are included and symlinked by the installer.
+The `codex` shell wrapper automatically passes `-c features.codex_hooks=true` to enable hook support. Both `claude/settings.json` and `codex/hooks.json` are included in the repo and set up by the installer.
 
 **tmux attention indicator**
 When a notification fires for a background tmux window, a 🔔 appears in the status bar for that window. It clears automatically when you switch to the window.
@@ -42,11 +42,9 @@ The tmux window title updates to the currently running command and resets to `zs
 
 ## Install
 
-There are two scripts depending on your use case.
+### Your own machine
 
-### Your own machine (`creator.sh`)
-
-Sets up full symlinks so edits to your dotfiles go directly into the repo. Edit normally, commit, and push — `git pull` on any other machine picks up changes instantly.
+Run `creator.sh` to set up full symlinks. Edits to your dotfiles (e.g. `~/.zshrc`) write directly into the repo — just commit and push.
 
 ```bash
 git clone https://github.com/jasoncaserta/dotfiles.git ~/Projects/dotfiles
@@ -54,9 +52,11 @@ cd ~/Projects/dotfiles
 ./creator.sh
 ```
 
-### Someone else's machine (`install.sh`)
+To get updates from another machine: `git pull` — changes are live immediately.
 
-Non-destructive — never replaces existing config files. Instead it appends an include directive to each one (`source`, `source-file`, `config-file`, `dofile`) so existing settings are preserved. For Claude and Codex it merges only the hook events that aren't already defined. Re-running is safe — all steps are idempotent.
+### Someone else's machine
+
+Run `install.sh`. It never touches your existing config files — it appends include directives (`source`, `source-file`, `config-file`, `dofile`) to your existing files so your own settings are preserved alongside these features. For Claude and Codex hooks it merges only events not already defined in your config.
 
 ```bash
 git clone https://github.com/jasoncaserta/dotfiles.git ~/Projects/dotfiles
@@ -64,7 +64,7 @@ cd ~/Projects/dotfiles
 ./install.sh
 ```
 
-Since the include directives point at the repo files, `git pull` is all you need to pick up changes — no need to re-run `install.sh` unless new files are added.
+To get updates: `git pull && ./install.sh`. Re-running `install.sh` is safe — all steps are idempotent. Behavior changes to existing features are picked up by `git pull` alone; new features require re-running `install.sh` to register new include directives or hook events.
 
 ## Post-install
 
