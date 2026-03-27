@@ -42,7 +42,7 @@ The tmux window title updates to the currently running command and resets to `zs
 
 ## Install
 
-### Your own machine
+### Leader
 
 Run `creator.sh` to set up full symlinks. Edits to your dotfiles (e.g. `~/.zshrc`) write directly into the repo — just commit and push.
 
@@ -54,7 +54,7 @@ cd ~/Projects/dotfiles
 
 To get updates from another machine: `git pull` — changes are live immediately.
 
-### Someone else's machine
+### Follower
 
 Run `install.sh`. It never touches your existing config files — it appends include directives (`source`, `source-file`, `config-file`, `dofile`) to your existing files so your own settings are preserved alongside these features. For Claude and Codex hooks it merges only events not already defined in your config.
 

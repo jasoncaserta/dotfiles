@@ -1,9 +1,7 @@
 #!/bin/bash
-# creator.sh — sets up full symlinks so edits to your dotfiles go directly
-# into the repo. For your own machines. After setup, just edit normally,
-# commit, and push — git pull on any other machine picks up changes instantly.
-#
-# For sharing with others, use install.sh instead.
+# creator.sh — leader setup. Sets up full symlinks so edits to your dotfiles
+# go directly into the repo. After setup, just edit normally, commit, and push
+# — followers run install.sh to get the features non-destructively.
 set -euo pipefail
 
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
