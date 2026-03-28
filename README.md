@@ -58,7 +58,18 @@ Claude's `StopFailure` hook fires on any API error (rate limit, token limit, bil
 The `codex` shell wrapper automatically passes `-c features.codex_hooks=true`. Both `claude/settings.json` and `codex/hooks.json` are included and set up by the installer. tmux-resurrect is configured to relaunch `claude` and `codex` panes after restore.
 
 **Tab attention indicator**
-When a notification fires for a background tab, a 🔔 appears in the status bar for that tab. It clears automatically when you switch to it.
+When a notification fires, a 🔔 appears in the status bar for that tab and a persistent macOS notification is shown. Both clear together under the same conditions:
+
+| Event | Bell clears | Notification clears |
+|-------|-------------|---------------------|
+| Switch to the tab (keyboard or clicking the tab in the status bar) | ✓ | ✓ |
+| Switch away from the tab (notification fired while you were already on it) | ✓ | ✓ |
+| Focus any pane in the tab | ✓ | ✓ |
+| Start typing in the tab | ✓ | ✓ |
+| Click into Ghostty from another app while already on the tab | ✓ | ✓ |
+| Click the macOS notification | ✓ | ✓ (switches to the tab) |
+| Close the tab | n/a | ✓ |
+| Detach from tmux | ✓ all | ✓ all |
 
 **Tab auto-rename**
 The tab title updates to the currently running command and resets to `zsh` when it finishes.
