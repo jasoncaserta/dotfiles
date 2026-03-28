@@ -47,13 +47,13 @@ Both send notifications when they need attention, finish a turn, or hit a rate/t
 
 | Trigger | Claude | Codex |
 |---------|--------|-------|
-| Turn done | ✓ hook | ✓ hook |
-| Asks a question | ✓ hook | ✓ polling |
-| Permission prompt | ✓ hook | ✓ polling |
-| Elicitation / MCP | ✓ hook | ✗ |
-| Rate / token limit | ✓ hook (`StopFailure`) | ✓ polling |
+| Turn done | ✓ hook (`Stop`) | ✓ hook (`Stop`) |
+| Asks a question | ✓ hook (`PreToolUse`) | ✓ stateful polling |
+| Permission prompt | ✓ hook (`PermissionRequest`) | ✓ stateful polling |
+| Elicitation / MCP | ✓ hook (`Elicitation`) | ✗ (Codex has no MCP support) |
+| Rate / token limit | ✓ hook (`StopFailure`) | ✓ stateful polling |
 
-Rate and token limit notifications use the message **"ran out of tokens :("**. Claude uses the built-in `StopFailure` hook event which fires on any API error (rate limit, token limit, billing, etc.). Codex detects limits by watching the pane for rate-limit output.
+Rate and token limit notifications use the message **"ran out of tokens :("**. Claude uses the built-in `StopFailure` hook event which fires on any API error (rate limit, token limit, billing, etc.). Codex detects prompts and limits with a stateful tmux-pane watcher so it only notifies on new blocking states.
 
 The `codex` shell wrapper automatically passes `-c features.codex_hooks=true`. Both `claude/settings.json` and `codex/hooks.json` are included and set up by the installer. tmux-resurrect is configured to relaunch `claude` and `codex` panes after restore.
 

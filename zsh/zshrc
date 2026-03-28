@@ -62,39 +62,68 @@ claude() {
 
 codex() {
   local pane="$TMUX_PANE"
+  local monitor_pid=''
   if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1; then
     tmux rename-window -t "$pane" "codex" 2>/dev/null
   fi
 
-  # Poll the pane content for question/permission UI and notify.
-  local monitor_pid
   if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1; then
     (
-      local waiting=0 content
+      local state='idle' next_state='idle' content
       while true; do
         content=$(tmux capture-pane -t "$pane" -p 2>/dev/null)
-        if printf '%s' "$content" | grep -qiE 'rate.?limit (exceeded|reached|error)|hit.*rate.?limit|too many request|overloaded_error'; then
-          if (( waiting == 0 )); then
-            "$HOME/.notify.sh" "Codex" "ran out of tokens :(" "$pane"
-            waiting=1
-          fi
-        elif printf '%s' "$content" | grep -qE 'Question [0-9]+/[0-9]+|Would you like to run'; then
-          if (( waiting == 0 )); then
-            "$HOME/.notify.sh" "Codex" "needs attention" "$pane"
-            waiting=1
-          fi
-        else
-          waiting=0
+
+        next_state='idle'
+        if printf '%s' "$content" | grep -qiE 'rate.?limit (exceeded|reached|error)|hit.*rate.?limit|too many requests?|usage_limit_exceeded|server_overloaded|overloaded_error'; then
+          next_state='rate_limited'
+        elif printf '%s' "$content" | grep -qE 'Would you like to run|Proceed with this command|Run this command'; then
+          next_state='attention_permission'
+        elif printf '%s' "$content" | grep -qE 'Question [0-9]+/[0-9]+'; then
+          next_state='attention_question'
         fi
+
+        if [[ "$next_state" != "$state" ]]; then
+          case "$next_state" in
+            rate_limited)
+              "$HOME/.notify.sh" "Codex" "ran out of tokens :(" "$pane"
+              ;;
+            attention_permission|attention_question)
+              "$HOME/.notify.sh" "Codex" "needs attention" "$pane"
+              ;;
+          esac
+          state="$next_state"
+        fi
+
         sleep 1
       done
     ) &
     monitor_pid=$!
   fi
 
-  command codex -c features.codex_hooks=true "$@"
+  local cleanup_name="_codex_cleanup_monitor_$$"
+  eval "${cleanup_name}() {
+    if [[ -n \"\${monitor_pid:-}\" ]]; then
+      kill \"\$monitor_pid\" 2>/dev/null || true
+    fi
+  }"
 
-  kill "$monitor_pid" 2>/dev/null || true
+  local saved_exit_trap saved_int_trap saved_term_trap
+  saved_exit_trap=$(trap -p EXIT)
+  saved_int_trap=$(trap -p INT)
+  saved_term_trap=$(trap -p TERM)
+
+  trap "$cleanup_name" EXIT INT TERM
+  command codex -c features.codex_hooks=true "$@"
+  local codex_status=$?
+
+  trap - EXIT INT TERM
+  [[ -n "$saved_exit_trap" ]] && eval "$saved_exit_trap"
+  [[ -n "$saved_int_trap" ]] && eval "$saved_int_trap"
+  [[ -n "$saved_term_trap" ]] && eval "$saved_term_trap"
+
+  $cleanup_name
+  unfunction "$cleanup_name" 2>/dev/null || true
+  return "$codex_status"
 }
 
 _prompt_tmux_restore_picker() {
