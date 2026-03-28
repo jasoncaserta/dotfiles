@@ -15,7 +15,10 @@ _terminal_alert_preexec() {
 }
 
 _terminal_alert_precmd() {
-  (( _terminal_alert_started_at > 0 )) || return 0
+  if (( _terminal_alert_started_at == 0 )); then
+    touch /tmp/.starship_cmd_fast 2>/dev/null
+    return 0
+  fi
 
   local runtime=$(( SECONDS - _terminal_alert_started_at ))
   local command_text=${_terminal_alert_command%%$'\n'*}
@@ -24,6 +27,12 @@ _terminal_alert_precmd() {
 
   _terminal_alert_started_at=0
   _terminal_alert_command=''
+
+  if (( runtime < 2 )); then
+    touch /tmp/.starship_cmd_fast 2>/dev/null
+  else
+    rm -f /tmp/.starship_cmd_fast 2>/dev/null
+  fi
 
   (( runtime >= TERMINAL_ALERT_MIN_SECONDS )) || return 0
 
@@ -329,6 +338,9 @@ EOF
       ;;
   esac
 }
+
+# Starship prompt
+eval "$(starship init zsh)"
 
 # Auto-attach Ghostty shells to a persistent tmux session.
 if command -v tmux >/dev/null 2>&1; then

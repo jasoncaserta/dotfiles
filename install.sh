@@ -139,6 +139,7 @@ if [[ "$role" == leader ]]; then
   link "$DOTFILES/git/gitignore_global"   "$HOME/.config/git/ignore"
   link "$DOTFILES/claude/settings.json"   "$HOME/.claude/settings.json"
   link "$DOTFILES/codex/hooks.json"       "$HOME/.codex/hooks.json"
+  link "$DOTFILES/starship/starship.toml" "$HOME/.config/starship.toml"
   chmod +x "$DOTFILES/scripts/notify.sh"
 
 # ── follower: non-destructive includes + hook merge ───────────────────────────
@@ -153,7 +154,8 @@ else
     [[ -z "$line" ]] && continue
     append_if_missing "$HOME/.config/git/ignore" "$line"
   done < "$DOTFILES/git/gitignore_global"
-  link "$DOTFILES/scripts/notify.sh" "$HOME/.notify.sh"
+  link "$DOTFILES/scripts/notify.sh"      "$HOME/.notify.sh"
+  link "$DOTFILES/starship/starship.toml" "$HOME/.config/starship.toml"
   chmod +x "$DOTFILES/scripts/notify.sh"
   merge_hooks_json "$DOTFILES/claude/settings.json" "$HOME/.claude/settings.json"
   merge_hooks_json "$DOTFILES/codex/hooks.json"     "$HOME/.codex/hooks.json"

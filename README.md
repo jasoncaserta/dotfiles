@@ -1,6 +1,6 @@
 # dotfiles
 
-Ghostty + tmux + zsh setup for macOS with smart terminal notifications.
+Ghostty + tmux + zsh + Starship setup for macOS with smart terminal notifications.
 
 > **Tab terminology:** "tab" means a tmux window throughout — Ghostty native tabs aren't available in the quick terminal.
 
@@ -74,12 +74,29 @@ When a notification fires, a 🔔 appears in the status bar for that tab and a p
 **Tab auto-rename**
 The tab title updates to the currently running command and resets to `zsh` when it finishes.
 
+**Starship prompt**
+A powerline-style prompt with colored segments on the left and right:
+
+- **Left**: directory (blue) → git branch (orange) → git status (green)
+- **Right**: command duration (orange, only when ≥2s) → current time (purple)
+
+Git segments only appear inside a git repo. The status segment only appears when there are uncommitted changes or the branch is ahead/behind its remote.
+
+```
+ ~/Projects/dotfiles   better-notif-contents   !?      3s   02:34 PM
+❯
+```
+
+Prompt config lives in `starship/starship.toml`. Requires the [JetBrainsMono Nerd Font](https://www.nerdfonts.com) for icons — install with `brew install --cask font-jetbrains-mono-nerd-font`.
+
 ## Requirements
 
 - macOS
 - [Ghostty](https://ghostty.org) — terminal
 - [tmux](https://github.com/tmux/tmux) — `brew install tmux`
 - [Hammerspoon](https://www.hammerspoon.org) — handles notification clicks
+- [Starship](https://starship.rs) — prompt — `brew install starship`
+- [JetBrainsMono Nerd Font](https://www.nerdfonts.com) — `brew install --cask font-jetbrains-mono-nerd-font`
 - [Homebrew](https://brew.sh)
 - zsh (macOS default)
 
