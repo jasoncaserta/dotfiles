@@ -1,9 +1,27 @@
 hs.ipc.cliInstall()
 
+local pendingNotifications = {}
+
+-- Dismiss a pending notification by window key (e.g. "@116")
+function dismissNotify(winKey)
+    local n = pendingNotifications[winKey]
+    if n then
+        n:withdraw()
+        pendingNotifications[winKey] = nil
+    end
+end
+
 -- Notification helper called from ~/.notify.sh via:
 --   hs -c "showNotify('title', 'message', 'windowId')"
 function showNotify(title, message, windowId)
+    local winKey = ""
+    if windowId and windowId ~= "" then
+        winKey = windowId:match("(@%w+)$") or windowId
+    end
     local n = hs.notify.new(function()
+        if winKey ~= "" then
+            pendingNotifications[winKey] = nil
+        end
         hs.application.launchOrFocus("Ghostty")
         if windowId and windowId ~= "" then
             hs.timer.doAfter(0.2, function()
@@ -23,6 +41,13 @@ function showNotify(title, message, windowId)
         informativeText = message,
         soundName = "Glass",
         hasActionButton = false,
+        withdrawAfter = 0,
     })
+    if winKey ~= "" then
+        if pendingNotifications[winKey] then
+            pendingNotifications[winKey]:withdraw()
+        end
+        pendingNotifications[winKey] = n
+    end
     n:send()
 end

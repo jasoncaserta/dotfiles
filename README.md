@@ -101,14 +101,20 @@ Open System Settings → Privacy & Security and grant Hammerspoon:
 
 Then reload: Hammerspoon menu bar icon → Reload Config.
 
-**2. Reload tmux** (inside an active tmux session)
+**2. Hammerspoon notification style**
+
+Open System Settings → Notifications → Hammerspoon and set Alert Style to **Persistent**. This keeps notifications on screen until you switch to the relevant tab (or dismiss them manually).
+
+![Hammerspoon notification settings](docs/hammerspoon-notification-settings.png)
+
+**3. Reload tmux** (inside an active tmux session)
 
 ```bash
 tmux source ~/.tmux.conf
 ~/.tmux/plugins/tpm/bin/install_plugins
 ```
 
-**3. Restart your shell** or open a new Ghostty window for zsh changes to take effect.
+**4. Restart your shell** or open a new Ghostty window for zsh changes to take effect.
 
 After a reboot, open Ghostty and use the restore picker to choose a snapshot or start a new session.
 
