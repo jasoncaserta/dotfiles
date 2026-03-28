@@ -43,7 +43,7 @@ auto: 3m ago  manual: 1h ago
 Any command taking longer than 3 seconds triggers a macOS notification when it finishes. The notification title shows the command name; clicking it focuses Ghostty and jumps to the tmux tab where it ran. Threshold is configurable via `TERMINAL_ALERT_MIN_SECONDS`.
 
 **Claude and Codex notifications**
-Both send notifications when they need attention or finish a turn.
+Both send notifications when they need attention, finish a turn, or hit a rate/token limit.
 
 | Trigger | Claude | Codex |
 |---------|--------|-------|
@@ -51,6 +51,9 @@ Both send notifications when they need attention or finish a turn.
 | Asks a question | ✓ hook | ✓ polling |
 | Permission prompt | ✓ hook | ✓ polling |
 | Elicitation / MCP | ✓ hook | ✗ |
+| Rate / token limit | ✓ hook (`StopFailure`) | ✓ polling |
+
+Rate and token limit notifications use the message **"ran out of tokens :("**. Claude uses the built-in `StopFailure` hook event which fires on any API error (rate limit, token limit, billing, etc.). Codex detects limits by watching the pane for rate-limit output.
 
 The `codex` shell wrapper automatically passes `-c features.codex_hooks=true`. Both `claude/settings.json` and `codex/hooks.json` are included and set up by the installer. tmux-resurrect is configured to relaunch `claude` and `codex` panes after restore.
 

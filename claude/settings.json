@@ -22,6 +22,16 @@
         ]
       }
     ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.notify.sh \"Claude\" \"ran out of tokens :(\" \"$TMUX_PANE\""
+          }
+        ]
+      }
+    ],
     "PermissionRequest": [
       {
         "hooks": [

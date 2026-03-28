@@ -73,7 +73,12 @@ codex() {
       local waiting=0 content
       while true; do
         content=$(tmux capture-pane -t "$pane" -p 2>/dev/null)
-        if printf '%s' "$content" | grep -qE 'Question [0-9]+/[0-9]+|Would you like to run'; then
+        if printf '%s' "$content" | grep -qiE 'rate.?limit (exceeded|reached|error)|hit.*rate.?limit|too many request|overloaded_error'; then
+          if (( waiting == 0 )); then
+            "$HOME/.notify.sh" "Codex" "ran out of tokens :(" "$pane"
+            waiting=1
+          fi
+        elif printf '%s' "$content" | grep -qE 'Question [0-9]+/[0-9]+|Would you like to run'; then
           if (( waiting == 0 )); then
             "$HOME/.notify.sh" "Codex" "needs attention" "$pane"
             waiting=1
