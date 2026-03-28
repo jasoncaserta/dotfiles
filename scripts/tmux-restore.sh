@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-restore_file="$HOME/.tmux/resurrect/last"
+restore_file="${1:-$HOME/.tmux/resurrect/last}"
 restore_dir="$HOME/.tmux/resurrect"
 plugin_restore="$HOME/.tmux/plugins/tmux-resurrect/scripts/restore.sh"
 tmp_restore_dir=''

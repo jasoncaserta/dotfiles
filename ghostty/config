@@ -2,3 +2,4 @@ bell-features = no-attention
 quick-terminal-animation-duration = 0
 keybind = super+backquote=unbind
 keybind = global:cmd+grave_accent=toggle_quick_terminal
+

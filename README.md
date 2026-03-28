@@ -2,49 +2,76 @@
 
 Ghostty + tmux + zsh setup for macOS with smart terminal notifications.
 
-## Features
+> **Tab terminology:** Throughout this document "tab" refers to a tmux window, not a Ghostty native tab. tmux windows are used because Ghostty's native tabs are unavailable in the quick terminal.
 
-**Notifications for long-running commands**
-Any command that takes longer than 3 seconds triggers a macOS notification when it finishes. The notification title shows the command name and clicking it focuses Ghostty and jumps directly to the tmux tab where it ran. Threshold is configurable via `TERMINAL_ALERT_MIN_SECONDS`.
+## What you get
 
-**Claude and Codex support**
-Both Claude and Codex send notifications when they need attention or finish a turn. Claude uses hooks; Codex uses pane-content polling where no hook is available (hooks for codex are limited and currently in beta).
+**Persistent tmux session**
+Ghostty always attaches to (or creates) a session named `main`. Works in the quick terminal. Set `NO_AUTO_TMUX=1` to skip.
+
+**Smart auto-save**
+Snapshots are saved automatically at the right moments:
+
+| Trigger | Cooldown | Notification |
+|---------|----------|-------------|
+| Every 30 seconds (background loop) | 30 s | ✓ green banner |
+
+The loop starts when Ghostty opens and runs as long as tmux is alive. Only one loop runs at a time. The resurrect "Tmux environment saved!" banner is suppressed; instead a discrete green pill appears in the top-right of the status bar for 5 seconds.
+
+**Restore picker**
+On a fresh Ghostty launch when tmux is not running, an interactive picker shows recent saves grouped by type:
+
+```
+Restore tmux session?
+
+  Auto saves:
+  > [1] 2m ago
+    [2] 35m ago
+
+  Manual saves:
+    [3] 1h ago
+
+    [n] New session
+
+  ↑↓ or 1-3/n, Enter to confirm
+```
+
+Navigate with arrow keys or number keys. When multiple Ghostty tabs open simultaneously, both show the picker; whichever you answer first wins and the other dismisses automatically.
+
+**Status bar save times**
+The top-right of the status bar shows the age of the last auto and manual save:
+
+```
+auto: 3m ago  manual: 1h ago
+```
+
+**Long-running command notifications**
+Any command taking longer than 3 seconds triggers a macOS notification when it finishes. The notification title shows the command name; clicking it focuses Ghostty and jumps to the tmux tab where it ran. Threshold is configurable via `TERMINAL_ALERT_MIN_SECONDS`.
+
+**Claude and Codex notifications**
+Both send notifications when they need attention or finish a turn.
 
 | Trigger | Claude | Codex |
 |---------|--------|-------|
-| Turn done | ✓ hook → "done!" | ✓ hook → "done!" |
-| Asks a question | ✓ hook → "needs attention" | ✓ polling → "needs attention" |
-| Permission prompt | ✓ hook → "needs attention" | ✓ polling → "needs attention" |
-| Elicitation / MCP | ✓ hook → "needs attention" | ✗ not available |
+| Turn done | ✓ hook | ✓ hook |
+| Asks a question | ✓ hook | ✓ polling |
+| Permission prompt | ✓ hook | ✓ polling |
+| Elicitation / MCP | ✓ hook | ✗ |
 
-The `codex` shell wrapper automatically passes `-c features.codex_hooks=true` to enable hook support. Both `claude/settings.json` and `codex/hooks.json` are included in the repo and set up by the installer.
-tmux-resurrect is also configured to relaunch `claude` and `codex` panes after restore, similar to how `htop` is restarted. This reopens the tools in the restored panes, but chat continuity still depends on whether the CLI itself supports resuming the prior conversation.
+The `codex` shell wrapper automatically passes `-c features.codex_hooks=true`. Both `claude/settings.json` and `codex/hooks.json` are included and set up by the installer. tmux-resurrect is configured to relaunch `claude` and `codex` panes after restore.
 
-**tmux attention indicator**
-When a notification fires for a background tmux tab, a 🔔 appears in the status bar for that tab. It clears automatically when you switch to it.
+**Tab attention indicator**
+When a notification fires for a background tab, a 🔔 appears in the status bar for that tab. It clears automatically when you switch to it.
 
-**Notification click navigation**
-Clicking a notification focuses Ghostty and switches to the exact tmux tab that triggered it, handled via Hammerspoon.
-
-**Auto-attach to a persistent tmux session**
-Opening Ghostty automatically attaches to (or creates) a persistent tmux session named `main`. Set `NO_AUTO_TMUX=1` to skip this.
-
-**tmux restore after reboot**
-tmux restores from the latest manual snapshot on startup after a reboot via `tmux-resurrect` + `tmux-continuum`. Autosave is currently disabled, so the restore point only changes when you save manually with `prefix Ctrl-s`. On a fresh Ghostty launch after tmux is not running, you get an interactive restore prompt with the latest snapshot age and a default `Yes` selection. Press `Enter` to restore, or move to `No` with the arrow keys to start a clean `main` session instead. When you choose `Yes`, Ghostty now attaches to `main` first and then runs the restore inside tmux, which avoids the clientless startup path that could collapse the restored layout.
-
-The top-right tmux status bar shows `tmux save: 32s ago` or `tmux save: 2m ago`, based on the latest saved tmux snapshot.
-The restore flow uses a local wrapper script to sanitize tmux-resurrect state before restoring. It now restores from a temporary sanitized copy of the snapshot and drops only invalid `state` rows, which avoids the `(null):0: empty value` popup without rewriting the saved snapshot on disk.
-tmux-resurrect uses the `pgrep` save strategy so pane commands are captured from the child process instead of just the parent shell, which is important for tools like Codex.
-
-**Window auto-rename**
-The tmux tab title updates to the currently running command and resets to `zsh` when it finishes.
+**Tab auto-rename**
+The tab title updates to the currently running command and resets to `zsh` when it finishes.
 
 ## Requirements
 
 - macOS
 - [Ghostty](https://ghostty.org) — terminal
 - [tmux](https://github.com/tmux/tmux) — `brew install tmux`
-- [Hammerspoon](https://www.hammerspoon.org) — macOS automation (handles notification clicks)
+- [Hammerspoon](https://www.hammerspoon.org) — handles notification clicks
 - [Homebrew](https://brew.sh)
 - zsh (macOS default)
 
@@ -66,9 +93,9 @@ Use leader mode explicitly:
 
 **Leader** — sets up full symlinks so edits to your dotfiles (e.g. `~/.zshrc`) write directly into the repo. Just commit and push. `git pull` on any other machine picks up changes immediately.
 
-**Follower** — never touches your existing config files. Appends include directives (`source`, `source-file`, `config-file`, `dofile`) alongside your existing settings. For Claude and Codex hooks it merges only events not already defined. Re-running is safe — all steps are idempotent.
+**Follower** — never touches your existing config files. Appends include directives alongside your existing settings. For Claude and Codex hooks it merges only events not already defined. Re-running is safe — all steps are idempotent.
 
-To get updates as a follower: `git pull && ./install.sh`. Behavior changes to existing features are picked up by `git pull` alone; new features require re-running `install.sh`.
+To get updates as a follower: `git pull && ./install.sh`. Behavior changes are picked up by `git pull` alone; new features require re-running `install.sh`.
 
 ## Post-install
 
@@ -89,7 +116,7 @@ tmux source ~/.tmux.conf
 
 **3. Restart your shell** or open a new Ghostty window for zsh changes to take effect.
 
-After a reboot, open Ghostty and choose whether to restore the latest tmux snapshot. Press `Enter` to accept the default `Yes`.
+After a reboot, open Ghostty and use the restore picker to choose a snapshot or start a new session.
 
 ## Customization
 
@@ -105,8 +132,6 @@ Export these in `~/.zprofile` to change the defaults.
 Run `jason help` in a shell to print these key bindings in the terminal.
 
 ### Ghostty
-
-These bindings work at the Ghostty level. The tmux ones send key sequences directly to tmux.
 
 | Binding | Action |
 |---------|--------|
@@ -134,8 +159,7 @@ tmux prefix is `Ctrl-A`.
 | `prefix -` | Split vertical |
 | `prefix h/j/k/l` | Navigate panes (vim-style) |
 | `prefix r` | Reload tmux config |
-| `prefix Ctrl-s` | Save tmux session immediately |
-| `prefix Ctrl-r` | Restore tmux session manually |
-| `prefix 0` | Jump to window 10 |
-| `M-Left / M-Right` | Previous / next window |
-| `Middle-click status bar` | Kill clicked window |
+| `prefix Ctrl-s` | Save tmux snapshot manually |
+| `prefix Ctrl-r` | Restore tmux snapshot manually |
+| `M-Left / M-Right` | Previous / next tab |
+| `Middle-click status bar` | Kill clicked tab |

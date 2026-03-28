@@ -92,66 +92,181 @@ codex() {
   kill "$monitor_pid" 2>/dev/null || true
 }
 
-_prompt_tmux_restore_choice() {
-  local snapshot_age="$1"
-  local selection=0
-  local key=''
-  local key2=''
-  local key3=''
+_prompt_tmux_restore_picker() {
+  local resurrect_dir="$HOME/.tmux/resurrect"
+  local auto_list_file="$resurrect_dir/last-auto-list"
+  local manual_list_file="$resurrect_dir/last-manual-list"
+
+  # Build arrays of snapshot files
+  local -a auto_files manual_files
+  auto_files=()
+  manual_files=()
+
+  if [[ -f "$auto_list_file" ]]; then
+    while IFS= read -r line; do
+      [[ -n "$line" && -f "$resurrect_dir/$line" ]] && auto_files+=("$line")
+    done < "$auto_list_file"
+  fi
+
+  if [[ -f "$manual_list_file" ]]; then
+    while IFS= read -r line; do
+      [[ -n "$line" && -f "$resurrect_dir/$line" ]] && manual_files+=("$line")
+    done < "$manual_list_file"
+  fi
+
+  # Fallback: if no lists, use 'last' symlink
+  local last_file="$resurrect_dir/last"
+  if (( ${#auto_files[@]} == 0 && ${#manual_files[@]} == 0 )); then
+    if [[ -f "$last_file" ]]; then
+      local resolved
+      resolved="$(readlink "$last_file" 2>/dev/null || printf '')"
+      [[ -n "$resolved" ]] && auto_files=("$resolved")
+    fi
+  fi
+
+  # No snapshots at all
+  if (( ${#auto_files[@]} == 0 && ${#manual_files[@]} == 0 )); then
+    return 1
+  fi
+
+  # Helper: human-readable age from filename mtime
+  _file_age_str() {
+    local f="$resurrect_dir/$1"
+    [[ -f "$f" ]] || f="$1"
+    local mtime now diff
+    mtime=$(stat -f %m "$f" 2>/dev/null || printf '0')
+    now=$(date +%s)
+    diff=$(( now - mtime ))
+    if (( diff < 60 )); then
+      printf '%ds ago' "$diff"
+    elif (( diff < 3600 )); then
+      printf '%dm ago' "$(( diff / 60 ))"
+    elif (( diff < 86400 )); then
+      printf '%dh ago' "$(( diff / 3600 ))"
+    else
+      printf '%dd ago' "$(( diff / 86400 ))"
+    fi
+  }
+
+  # Build ordered list of options: auto entries, then manual entries, then "New session"
+  local -a option_files option_labels option_groups
+  option_files=()
+  option_labels=()
+  option_groups=()   # 'auto', 'manual', 'new'
+
+  local i
+  for (( i = 0; i < ${#auto_files[@]}; i++ )); do
+    option_files+=("${auto_files[$((i+1))]}")
+    option_labels+=("$(_file_age_str "${auto_files[$((i+1))]}")")
+    option_groups+=('auto')
+  done
+  for (( i = 0; i < ${#manual_files[@]}; i++ )); do
+    option_files+=("${manual_files[$((i+1))]}")
+    option_labels+=("$(_file_age_str "${manual_files[$((i+1))]}")")
+    option_groups+=('manual')
+  done
+
+  local total_opts=$(( ${#option_files[@]} ))   # excludes "new session"
+  local has_auto=$(( ${#auto_files[@]} > 0 ? 1 : 0 ))
+  local has_manual=$(( ${#manual_files[@]} > 0 ? 1 : 0 ))
+  # Lines printed: header(1) + blank(1) + auto_hdr + entries + manual_hdr + entries
+  #                + blank(1) + new_session(1) + blank(1) + hint(1)
+  local draw_lines=$(( total_opts + has_auto + has_manual + 6 ))
+
+  local selection=0   # 0..total_opts-1 = snapshot; total_opts = new session
+  local key='' key2='' key3=''
+  local first_draw=1
+
+  _draw_picker() {
+    if (( first_draw )); then
+      first_draw=0
+    else
+      # Move cursor up draw_lines lines and clear to end
+      printf '\033[%dA\033[J' "$draw_lines"
+    fi
+
+    printf 'Restore tmux session?\n\n'
+
+    local idx=0
+    local prev_group=''
+    local row
+    for (( row = 0; row < total_opts; row++ )); do
+      local grp="${option_groups[$((row+1))]}"
+      if [[ "$grp" != "$prev_group" ]]; then
+        if [[ "$grp" == 'auto' ]]; then
+          printf '  Auto saves:\n'
+        else
+          printf '  Manual saves:\n'
+        fi
+        prev_group="$grp"
+      fi
+      local label="${option_labels[$((row+1))]}"
+      local num=$(( row + 1 ))
+      if (( selection == row )); then
+        printf '\033[7m  > [%d] %-12s\033[0m\n' "$num" "$label"
+      else
+        printf '    [%d] %-12s\n' "$num" "$label"
+      fi
+    done
+
+    # New session row
+    printf '\n'
+    if (( selection == total_opts )); then
+      printf '\033[7m  > [n] New session     \033[0m\n'
+    else
+      printf '    [n] New session\n'
+    fi
+
+    printf '\n  \xe2\x86\x91\xe2\x86\x93 or 1-%d/n, Enter to confirm\n' "$total_opts"
+  }
 
   while true; do
     if tmux has-session -t main 2>/dev/null; then
-      printf '\r\033[K'
+      # Another terminal won the race — erase our UI if drawn
+      if (( ! first_draw )); then
+        printf '\033[%dA\033[J' "$draw_lines"
+      fi
       return 1
     fi
 
-    printf '\r\033[KRestore tmux from latest snapshot (%s)? ' "$snapshot_age"
-    if (( selection == 0 )); then
-      printf '[x] Yes  [ ] No  (use arrows + Enter)'
-    else
-      printf '[ ] Yes  [x] No  (use arrows + Enter)'
-    fi
+    _draw_picker
 
     if ! read -rs -k 1 -t 0.5 key 2>/dev/null; then
       continue
     fi
+
     case "$key" in
       $'\n'|$'\r')
-        printf '\r\033[K'
-        if (( selection == 0 )); then
-          printf 'Restoring tmux snapshot...\n'
-          return 0
-        else
+        printf '\033[%dA\033[J' "$draw_lines"
+        if (( selection == total_opts )); then
           printf 'Starting new tmux session...\n'
           return 1
+        else
+          printf 'Restoring tmux snapshot (%s)...\n' "${option_labels[$((selection+1))]}"
+          TMUX_RESTORE_FILE="$resurrect_dir/${option_files[$((selection+1))]}"
+          return 0
         fi
         ;;
       $'\x1b')
         read -rs -k 1 -t 0.1 key2 2>/dev/null || continue
         read -rs -k 1 -t 0.1 key3 2>/dev/null || continue
         case "${key2}${key3}" in
-          '[A'|'[D')
-            selection=0
+          '[A')  # up
+            selection=$(( (selection - 1 + total_opts + 1) % (total_opts + 1) ))
             ;;
-          '[B'|'[C')
-            selection=1
+          '[B')  # down
+            selection=$(( (selection + 1) % (total_opts + 1) ))
             ;;
         esac
         ;;
-      y|Y)
-        selection=0
+      [1-9])
+        local n=$(( $key + 0 ))
+        if (( n >= 1 && n <= total_opts )); then
+          selection=$(( n - 1 ))
+        fi
         ;;
       n|N)
-        selection=1
-        ;;
-      h|H)
-        selection=0
-        ;;
-      l|L)
-        selection=1
-        ;;
-      ' ')
-        selection=$((1 - selection))
+        selection=$total_opts
         ;;
     esac
   done
@@ -183,12 +298,11 @@ tmux (prefix Ctrl-A)
   prefix -         Split vertical
   prefix h/j/k/l   Navigate panes
   prefix r         Reload tmux config
-  prefix Ctrl-s    Save tmux session
-  prefix Ctrl-r    Restore tmux session
-  prefix 0         Jump to window 10
-  Alt-Left         Previous window
-  Alt-Right        Next window
-  Middle-click     Kill clicked status-bar window
+  prefix Ctrl-s    Save tmux snapshot
+  prefix Ctrl-r    Restore tmux snapshot
+  M-Left           Previous tab
+  M-Right          Next tab
+  Middle-click     Kill clicked tab
 EOF
       ;;
     *)
@@ -204,29 +318,16 @@ if command -v tmux >/dev/null 2>&1; then
     *i*)
       if [ -z "$TMUX" ] && [ "${TERM_PROGRAM:-}" = "ghostty" ] && [ -z "${NO_AUTO_TMUX:-}" ]; then
         if ! tmux list-sessions >/dev/null 2>&1; then
-          local snapshot_age=""
+          local TMUX_RESTORE_FILE=''
           local should_restore=0
 
-          if [ -f "$HOME/.tmux/resurrect/last" ]; then
-            local _now _saved _diff
-            _now=$(date +%s)
-            _saved=$(stat -f %m "$HOME/.tmux/resurrect/last" 2>/dev/null || printf '0')
-            _diff=$((_now - _saved))
-            if (( _diff < 60 )); then
-              snapshot_age="${_diff}s ago"
-            elif (( _diff < 3600 )); then
-              snapshot_age="$((_diff / 60))m ago"
-            else
-              snapshot_age="$((_diff / 3600))h ago"
-            fi
-            if _prompt_tmux_restore_choice "$snapshot_age"; then
-              should_restore=1
-            fi
+          if _prompt_tmux_restore_picker; then
+            should_restore=1
           fi
 
           if tmux new-session -d -s main 2>/dev/null; then
-            if (( should_restore )) && [ -x "$HOME/Projects/dotfiles/scripts/tmux-restore.sh" ] && [ -f "$HOME/.tmux/resurrect/last" ]; then
-              tmux attach-session -t main \; run-shell "$HOME/Projects/dotfiles/scripts/tmux-restore.sh"
+            if (( should_restore )) && [ -x "$HOME/Projects/dotfiles/scripts/tmux-restore.sh" ] && [ -n "$TMUX_RESTORE_FILE" ]; then
+              tmux attach-session -t main \; run-shell "$HOME/Projects/dotfiles/scripts/tmux-restore.sh '$TMUX_RESTORE_FILE'"
               return
             fi
           else
