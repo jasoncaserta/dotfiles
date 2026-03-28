@@ -2,6 +2,30 @@ hs.ipc.cliInstall()
 
 local pendingNotifications = {}
 
+-- Resolve tmux binary once at load time
+local tmuxBin = "/usr/bin/tmux"
+for _, p in ipairs({"/opt/homebrew/bin/tmux", "/usr/local/bin/tmux"}) do
+    if hs.fs.attributes(p) then tmuxBin = p; break end
+end
+
+-- Strip characters that are unsafe in single-quoted shell arguments
+local function shellSanitize(s)
+    return s:gsub("[^%w@/._:-]", "")
+end
+
+-- Cached window key for the currently active tmux window in Ghostty.
+-- Updated when Ghostty is activated; used by keyTap to avoid per-keystroke shell calls.
+local activeWinKey = nil
+
+local function updateActiveWinKey()
+    local client, _ = hs.execute(tmuxBin .. " list-clients -F '#{client_activity} #{client_name}' | sort -rn | head -1 | awk '{print $2}'")
+    client = shellSanitize(client:gsub("%s+$", ""))
+    if client == "" then activeWinKey = nil; return end
+    local winId, _ = hs.execute(tmuxBin .. " display-message -c '" .. client .. "' -p '#{window_id}' 2>/dev/null")
+    winId = winId:gsub("%s+$", "")
+    activeWinKey = winId ~= "" and (winId:match("(@%w+)$") or winId) or nil
+end
+
 -- Dismiss a pending notification by window key (e.g. "@116")
 function dismissNotify(winKey)
     local n = pendingNotifications[winKey]
@@ -20,26 +44,13 @@ function dismissAllNotify()
 end
 
 -- Key watcher: on first keystroke in Ghostty, dismiss the active tmux window's notification.
+-- Uses cached activeWinKey (set on Ghostty activation) — no shell calls per keystroke.
 -- Only active while Ghostty is the frontmost app (started/stopped by ghosttyWatcher).
 local keyTap = hs.eventtap.new({hs.eventtap.event.types.keyDown}, function(_event)
-    local hasPending = false
-    for _ in pairs(pendingNotifications) do hasPending = true; break end
-    if not hasPending then return false end
-    local tmux = "/usr/bin/tmux"
-    for _, p in ipairs({"/opt/homebrew/bin/tmux", "/usr/local/bin/tmux"}) do
-        if hs.fs.attributes(p) then tmux = p; break end
-    end
-    local client, _ = hs.execute(tmux .. " list-clients -F '#{client_activity} #{client_name}' | sort -rn | head -1 | awk '{print $2}'")
-    client = client:gsub("%s+$", "")
-    if client == "" then return false end
-    local winId, _ = hs.execute(tmux .. " display-message -c '" .. client .. "' -p '#{window_id}' 2>/dev/null")
-    winId = winId:gsub("%s+$", "")
-    if winId == "" then return false end
-    local winKey = winId:match("(@%w+)$") or winId
-    if pendingNotifications[winKey] then
-        dismissNotify(winKey)
-        hs.execute(tmux .. " set-option -wuq -t '" .. winKey .. "' @needs_attention 2>/dev/null; " .. tmux .. " refresh-client -S 2>/dev/null")
-    end
+    if not activeWinKey then return false end
+    if not pendingNotifications[activeWinKey] then return false end
+    dismissNotify(activeWinKey)
+    hs.execute(tmuxBin .. " set-option -wuq -t '" .. activeWinKey .. "' @needs_attention 2>/dev/null; " .. tmuxBin .. " refresh-client -S 2>/dev/null")
     return false
 end)
 
@@ -48,22 +59,10 @@ end)
 local ghosttyWatcher = hs.application.watcher.new(function(name, event, _app)
     if name ~= "Ghostty" then return end
     if event == hs.application.watcher.activated then
-        local tmux = "/usr/bin/tmux"
-        for _, p in ipairs({"/opt/homebrew/bin/tmux", "/usr/local/bin/tmux"}) do
-            if hs.fs.attributes(p) then tmux = p; break end
-        end
-        local client, _ = hs.execute(tmux .. " list-clients -F '#{client_activity} #{client_name}' | sort -rn | head -1 | awk '{print $2}'")
-        client = client:gsub("%s+$", "")
-        if client ~= "" then
-            local winId, _ = hs.execute(tmux .. " display-message -c '" .. client .. "' -p '#{window_id}' 2>/dev/null")
-            winId = winId:gsub("%s+$", "")
-            if winId ~= "" then
-                local winKey = winId:match("(@%w+)$") or winId
-                if pendingNotifications[winKey] then
-                    dismissNotify(winKey)
-                    hs.execute(tmux .. " set-option -wuq -t '" .. winKey .. "' @needs_attention 2>/dev/null; " .. tmux .. " refresh-client -S 2>/dev/null")
-                end
-            end
+        updateActiveWinKey()
+        if activeWinKey and pendingNotifications[activeWinKey] then
+            dismissNotify(activeWinKey)
+            hs.execute(tmuxBin .. " set-option -wuq -t '" .. activeWinKey .. "' @needs_attention 2>/dev/null; " .. tmuxBin .. " refresh-client -S 2>/dev/null")
         end
         keyTap:start()
     elseif event == hs.application.watcher.deactivated then
@@ -74,6 +73,7 @@ ghosttyWatcher:start()
 
 -- If Ghostty is already frontmost when this config loads, start the key watcher immediately
 if hs.application.frontmostApplication():name() == "Ghostty" then
+    updateActiveWinKey()
     keyTap:start()
 end
 
@@ -91,17 +91,15 @@ function showNotify(title, message, windowId)
         hs.application.launchOrFocus("Ghostty")
         if windowId and windowId ~= "" then
             hs.timer.doAfter(0.2, function()
-                local tmux = "/usr/bin/tmux"
-                for _, p in ipairs({"/opt/homebrew/bin/tmux", "/usr/local/bin/tmux"}) do
-                    if hs.fs.attributes(p) then tmux = p; break end
-                end
-                local client, _ = hs.execute(tmux .. " list-clients -F '#{client_activity} #{client_name}' | sort -rn | head -1 | awk '{print $2}'")
-                client = client:gsub("%s+$", "")
+                local safeWindowId = shellSanitize(windowId)
+                local safeWinKey = shellSanitize(winKey)
+                local client, _ = hs.execute(tmuxBin .. " list-clients -F '#{client_activity} #{client_name}' | sort -rn | head -1 | awk '{print $2}'")
+                client = shellSanitize(client:gsub("%s+$", ""))
                 if client ~= "" then
-                    hs.execute(tmux .. " switch-client -c '" .. client .. "' -t '" .. windowId .. "' 2>/dev/null")
+                    hs.execute(tmuxBin .. " switch-client -c '" .. client .. "' -t '" .. safeWindowId .. "' 2>/dev/null")
                 end
-                if winKey ~= "" then
-                    hs.execute(tmux .. " set-option -wuq -t '" .. winKey .. "' @needs_attention 2>/dev/null; " .. tmux .. " refresh-client -S 2>/dev/null")
+                if safeWinKey ~= "" then
+                    hs.execute(tmuxBin .. " set-option -wuq -t '" .. safeWinKey .. "' @needs_attention 2>/dev/null; " .. tmuxBin .. " refresh-client -S 2>/dev/null")
                 end
             end)
         end
