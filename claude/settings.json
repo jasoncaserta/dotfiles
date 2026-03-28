@@ -22,6 +22,16 @@
         ]
       }
     ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.notify.sh \"Claude\" \"hit an error :(\" \"$TMUX_PANE\""
+          }
+        ]
+      }
+    ],
     "PermissionRequest": [
       {
         "hooks": [
