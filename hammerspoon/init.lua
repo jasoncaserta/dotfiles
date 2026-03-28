@@ -14,7 +14,7 @@ local function shellSanitize(s)
 end
 
 -- Cached window key for the currently active tmux window in Ghostty.
--- Updated when Ghostty is activated; used by keyTap to avoid per-keystroke shell calls.
+-- Updated when Ghostty is activated; used by keyTap/clickTap to avoid per-keystroke shell calls.
 local activeWinKey = nil
 
 local function updateActiveWinKey()
@@ -24,6 +24,13 @@ local function updateActiveWinKey()
     local winId, _ = hs.execute(tmuxBin .. " display-message -c '" .. client .. "' -p '#{window_id}' 2>/dev/null")
     winId = winId:gsub("%s+$", "")
     activeWinKey = winId ~= "" and (winId:match("(@%w+)$") or winId) or nil
+end
+
+local function dismissActiveIfPending()
+    if activeWinKey and pendingNotifications[activeWinKey] then
+        dismissNotify(activeWinKey)
+        hs.execute(tmuxBin .. " set-option -wuq -t '" .. activeWinKey .. "' @needs_attention 2>/dev/null; " .. tmuxBin .. " refresh-client -S 2>/dev/null")
+    end
 end
 
 -- Dismiss a pending notification by window key (e.g. "@116")
@@ -49,32 +56,45 @@ end
 local keyTap = hs.eventtap.new({hs.eventtap.event.types.keyDown}, function(_event)
     if not activeWinKey then return false end
     if not pendingNotifications[activeWinKey] then return false end
-    dismissNotify(activeWinKey)
-    hs.execute(tmuxBin .. " set-option -wuq -t '" .. activeWinKey .. "' @needs_attention 2>/dev/null; " .. tmuxBin .. " refresh-client -S 2>/dev/null")
+    dismissActiveIfPending()
+    return false
+end)
+
+-- Mouse click watcher: catches status-bar tab clicks that switch the tmux window.
+-- After a brief delay (to let tmux process the click first), re-queries the active
+-- window and dismisses its notification if pending. Avoids relying on hs CLI IPC.
+local clickTap = hs.eventtap.new({hs.eventtap.event.types.leftMouseUp}, function(_event)
+    local hasPending = false
+    for _ in pairs(pendingNotifications) do hasPending = true; break end
+    if not hasPending then return false end
+    hs.timer.doAfter(0.075, function()
+        updateActiveWinKey()
+        dismissActiveIfPending()
+    end)
     return false
 end)
 
 -- App watcher: dismiss active window's notification when Ghostty gains focus;
--- start/stop keyTap so it only runs while Ghostty is in front.
+-- start/stop keyTap and clickTap so they only run while Ghostty is in front.
 local ghosttyWatcher = hs.application.watcher.new(function(name, event, _app)
     if name ~= "Ghostty" then return end
     if event == hs.application.watcher.activated then
         updateActiveWinKey()
-        if activeWinKey and pendingNotifications[activeWinKey] then
-            dismissNotify(activeWinKey)
-            hs.execute(tmuxBin .. " set-option -wuq -t '" .. activeWinKey .. "' @needs_attention 2>/dev/null; " .. tmuxBin .. " refresh-client -S 2>/dev/null")
-        end
+        dismissActiveIfPending()
         keyTap:start()
+        clickTap:start()
     elseif event == hs.application.watcher.deactivated then
         keyTap:stop()
+        clickTap:stop()
     end
 end)
 ghosttyWatcher:start()
 
--- If Ghostty is already frontmost when this config loads, start the key watcher immediately
+-- If Ghostty is already frontmost when this config loads, start the watchers immediately
 if hs.application.frontmostApplication():name() == "Ghostty" then
     updateActiveWinKey()
     keyTap:start()
+    clickTap:start()
 end
 
 -- Notification helper called from ~/.notify.sh via:

@@ -15,6 +15,9 @@ if [[ -n "$TARGET" ]] && command -v tmux >/dev/null 2>&1; then
         # Pane ID (%62) — resolve to session:window
         TARGET=$(tmux display-message -p -t "$TARGET" '#{session_name}:#{window_id}' 2>/dev/null || printf '%s' "$TARGET")
     fi
+    # Use the tmux window name as the notification title
+    _win_name=$(tmux display-message -p -t "$TARGET" '#{window_name}' 2>/dev/null || printf '')
+    [[ -n "$_win_name" ]] && TITLE="$_win_name"
 fi
 
 if command -v hs >/dev/null 2>&1; then
