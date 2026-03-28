@@ -21,6 +21,9 @@ case "$action" in
     if [[ -n "$window_id" ]]; then
       tmux set-option -gq @last_active_win "$window_id" 2>/dev/null || true
       tmux set-option -wu -t "$window_id" @needs_attention 2>/dev/null || true
+      if command -v hs >/dev/null 2>&1; then
+        hs -c "dismissNotify('$window_id')" >/dev/null 2>&1 &
+      fi
     fi
     if has_clients; then
       tmux refresh-client -S 2>/dev/null || true
