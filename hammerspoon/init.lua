@@ -1,18 +1,5 @@
 hs.ipc.cliInstall()
 
--- Cmd+W in Ghostty: kill the current tmux window (send prefix + q)
-hs.eventtap.new({hs.eventtap.event.types.keyDown}, function(event)
-    if event:getKeyCode() == 13 and event:getFlags():containExactly({"cmd"}) then
-        local app = hs.application.frontmostApplication()
-        if app and app:name() == "Ghostty" then
-            hs.eventtap.keyStroke({"ctrl"}, "a", 0)
-            hs.eventtap.keyStroke({}, "q", 0)
-            return true
-        end
-    end
-    return false
-end):start()
-
 -- Notification helper called from ~/.notify.sh via:
 --   hs -c "showNotify('title', 'message', 'windowId')"
 function showNotify(title, message, windowId)

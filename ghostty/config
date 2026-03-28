@@ -1,5 +1,40 @@
+# Theming
+
+theme = "Broadcast"
+window-theme = dark
+font-family = "JetBrainsMono NFM Regular"
+font-size = 16
+window-padding-x = 10
+window-padding-y = 10
+window-decoration = true
+cursor-style = block
+adjust-cell-height = 35%
+mouse-scroll-multiplier = 2
+window-colorspace = "display-p3"
+copy-on-select = clipboard
+window-padding-balance = true
+window-save-state = always
+macos-titlebar-style = transparent
+background-opacity = 0.72
+background-blur = 80
 bell-features = no-attention
-quick-terminal-animation-duration = 0
+desktop-notifications = true
+notify-on-command-finish = always
+notify-on-command-finish-action = notify,bell
+notify-on-command-finish-after = 1s
+
+# Quick access
+
+quick-terminal-position = top
+quick-terminal-size = 40%,75%
+quick-terminal-autohide = true
+quick-terminal-animation-duration = 0.12
 keybind = super+backquote=unbind
 keybind = global:cmd+grave_accent=toggle_quick_terminal
 
+# Keybindings
+
+keybind = cmd+t=text:\x01c
+keybind = cmd+w=text:\x01W
+keybind = ctrl+tab=text:\x01n
+keybind = ctrl+shift+tab=text:\x01p
