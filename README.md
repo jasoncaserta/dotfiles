@@ -2,7 +2,7 @@
 
 Ghostty + tmux + zsh setup for macOS with smart terminal notifications.
 
-> **Tab terminology:** Throughout this document "tab" refers to a tmux window, not a Ghostty native tab. tmux windows are used because Ghostty's native tabs are unavailable in the quick terminal.
+> **Tab terminology:** "tab" means a tmux window throughout — Ghostty native tabs aren't available in the quick terminal.
 
 ## What you get
 
@@ -10,13 +10,7 @@ Ghostty + tmux + zsh setup for macOS with smart terminal notifications.
 Ghostty always attaches to (or creates) a session named `main`. Works in the quick terminal. Set `NO_AUTO_TMUX=1` to skip.
 
 **Smart auto-save**
-Snapshots are saved automatically at the right moments:
-
-| Trigger | Cooldown | Notification |
-|---------|----------|-------------|
-| Every 30 seconds (background loop) | 30 s | ✓ green banner |
-
-The loop starts when Ghostty opens and runs as long as tmux is alive. Only one loop runs at a time. The resurrect "Tmux environment saved!" banner is suppressed; instead a discrete green pill appears in the top-right of the status bar for 5 seconds.
+Snapshots save automatically every 30 seconds via a background loop that starts with Ghostty and runs as long as tmux is alive. Only one loop runs at a time. Green text appears in the status bar for 5 seconds after each save instead of the default resurrect banner.
 
 **Restore picker**
 On a fresh Ghostty launch when tmux is not running, an interactive picker shows recent saves grouped by type:
@@ -36,7 +30,7 @@ Restore tmux session?
   ↑↓ or 1-3/n, Enter to confirm
 ```
 
-Navigate with arrow keys or number keys. When multiple Ghostty tabs open simultaneously, both show the picker; whichever you answer first wins and the other dismisses automatically.
+If the quick terminal and a regular Ghostty window open simultaneously, both show the picker; whichever you answer first wins and the other dismisses automatically.
 
 **Status bar save times**
 The top-right of the status bar shows the age of the last auto and manual save:

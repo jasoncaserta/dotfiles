@@ -35,6 +35,6 @@ keybind = global:cmd+grave_accent=toggle_quick_terminal
 # Keybindings
 
 keybind = cmd+t=text:\x01c
-keybind = cmd+w=text:\x01W
+keybind = cmd+w=text:\x01q
 keybind = ctrl+tab=text:\x01n
 keybind = ctrl+shift+tab=text:\x01p
