@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.notify.sh \"Claude\" \"ran out of tokens :(\" \"$TMUX_PANE\""
+            "command": "$HOME/.notify.sh \"Claude\" \"hit an error :(\" \"$TMUX_PANE\""
           }
         ]
       }

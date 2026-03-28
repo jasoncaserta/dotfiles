@@ -100,30 +100,13 @@ codex() {
     monitor_pid=$!
   fi
 
-  local cleanup_name="_codex_cleanup_monitor_$$"
-  eval "${cleanup_name}() {
-    if [[ -n \"\${monitor_pid:-}\" ]]; then
-      kill \"\$monitor_pid\" 2>/dev/null || true
-    fi
-  }"
-
-  local saved_exit_trap saved_int_trap saved_term_trap
-  saved_exit_trap=$(trap -p EXIT)
-  saved_int_trap=$(trap -p INT)
-  saved_term_trap=$(trap -p TERM)
-
-  trap "$cleanup_name" EXIT INT TERM
+  # monitor_pid is '' when $pane is unset; cleanup is a no-op in that case.
+  trap '[[ -n $monitor_pid ]] && kill $monitor_pid 2>/dev/null' EXIT INT TERM
   command codex -c features.codex_hooks=true "$@"
   local codex_status=$?
-
   trap - EXIT INT TERM
-  [[ -n "$saved_exit_trap" ]] && eval "$saved_exit_trap"
-  [[ -n "$saved_int_trap" ]] && eval "$saved_int_trap"
-  [[ -n "$saved_term_trap" ]] && eval "$saved_term_trap"
-
-  $cleanup_name
-  unfunction "$cleanup_name" 2>/dev/null || true
-  return "$codex_status"
+  [[ -n $monitor_pid ]] && kill $monitor_pid 2>/dev/null
+  return $codex_status
 }
 
 _prompt_tmux_restore_picker() {
