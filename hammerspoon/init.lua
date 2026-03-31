@@ -13,6 +13,11 @@ local function shellSanitize(s)
     return s:gsub("[^%w@/._:-]", "")
 end
 
+-- Extract the tmux window key (e.g. "@116") from a raw window ID or session:window string
+local function extractWinKey(id)
+    return id:match("(@%w+)$") or id
+end
+
 -- Cached window key for the currently active tmux window in Ghostty.
 -- Updated when Ghostty is activated; used by keyTap/clickTap to avoid per-keystroke shell calls.
 local activeWinKey = nil
@@ -23,7 +28,7 @@ local function updateActiveWinKey()
     if client == "" then activeWinKey = nil; return end
     local winId, _ = hs.execute(tmuxBin .. " display-message -c '" .. client .. "' -p '#{window_id}' 2>/dev/null")
     winId = winId:gsub("%s+$", "")
-    activeWinKey = winId ~= "" and (winId:match("(@%w+)$") or winId) or nil
+    activeWinKey = winId ~= "" and extractWinKey(winId) or nil
 end
 
 local function dismissActiveIfPending()
@@ -50,10 +55,20 @@ function dismissAllNotify()
     end
 end
 
+local function hasPendingNotifications()
+    for _ in pairs(pendingNotifications) do
+        return true
+    end
+    return false
+end
+
 -- Key watcher: on first keystroke in Ghostty, dismiss the active tmux window's notification.
--- Uses cached activeWinKey (set on Ghostty activation) — no shell calls per keystroke.
+-- Re-resolves the active tmux window when any notification is pending so keyboard-driven
+-- window switches clear the correct tab on the next typed key.
 -- Only active while Ghostty is the frontmost app (started/stopped by ghosttyWatcher).
 local keyTap = hs.eventtap.new({hs.eventtap.event.types.keyDown}, function(_event)
+    if not hasPendingNotifications() then return false end
+    updateActiveWinKey()
     if not activeWinKey then return false end
     if not pendingNotifications[activeWinKey] then return false end
     dismissActiveIfPending()
@@ -64,9 +79,7 @@ end)
 -- After a brief delay (to let tmux process the click first), re-queries the active
 -- window and dismisses its notification if pending. Avoids relying on hs CLI IPC.
 local clickTap = hs.eventtap.new({hs.eventtap.event.types.leftMouseUp}, function(_event)
-    local hasPending = false
-    for _ in pairs(pendingNotifications) do hasPending = true; break end
-    if not hasPending then return false end
+    if not hasPendingNotifications() then return false end
     hs.timer.doAfter(0.075, function()
         updateActiveWinKey()
         dismissActiveIfPending()
@@ -102,7 +115,7 @@ end
 function showNotify(title, message, windowId)
     local winKey = ""
     if windowId and windowId ~= "" then
-        winKey = windowId:match("(@%w+)$") or windowId
+        winKey = extractWinKey(windowId)
     end
     local n = hs.notify.new(function()
         if winKey ~= "" then

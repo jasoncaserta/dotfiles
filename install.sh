@@ -59,7 +59,7 @@ append_if_missing() {
   fi
 }
 
-# Merge hooks from $src into $dst using Python.
+# Merge hooks from $src into $dst using jq.
 # Adds hook entries for any event not already defined in $dst; skips events
 # that already exist so the user's existing hooks are never overwritten.
 merge_hooks_json() {
@@ -70,34 +70,21 @@ merge_hooks_json() {
     green "  created $dst"
     return
   fi
-  python3 - "$dst" "$src" <<'EOF'
-import json, sys
-
-with open(sys.argv[1]) as f:
-    existing = json.load(f)
-with open(sys.argv[2]) as f:
-    incoming = json.load(f)
-
-existing_hooks = existing.setdefault("hooks", {})
-added = []
-skipped = []
-
-for event, entries in incoming.get("hooks", {}).items():
-    if event in existing_hooks:
-        skipped.append(event)
-    else:
-        existing_hooks[event] = entries
-        added.append(event)
-
-with open(sys.argv[1], "w") as f:
-    json.dump(existing, f, indent=2)
-    f.write("\n")
-
-if added:
-    print(f"  added hooks: {', '.join(added)}")
-if skipped:
-    print(f"  skipped (already defined): {', '.join(skipped)}")
-EOF
+  local tmp added skipped
+  tmp=$(mktemp)
+  added=$(jq -rn --slurpfile d "$dst" --slurpfile s "$src" \
+    '[($s[0].hooks // {}) | keys[] | select(. as $k | ($d[0].hooks // {})[$k] == null)] | select(length > 0) | join(", ")')
+  skipped=$(jq -rn --slurpfile d "$dst" --slurpfile s "$src" \
+    '[($s[0].hooks // {}) | keys[] | select(. as $k | ($d[0].hooks // {})[$k] != null)] | select(length > 0) | join(", ")')
+  jq -s '
+    .[0] as $dst | .[1] as $src |
+    $dst | .hooks = (
+      ($dst.hooks // {}) +
+      (($src.hooks // {}) | with_entries(select(.key as $k | ($dst.hooks // {})[$k] == null)))
+    )
+  ' "$dst" "$src" > "$tmp" && mv "$tmp" "$dst"
+  [[ -n "$added" ]] && green "  added hooks: $added"
+  [[ -n "$skipped" ]] && green "  skipped (already defined): $skipped"
   green "  merged $dst"
 }
 
@@ -143,6 +130,7 @@ brew_install starship
 brew_install eza
 brew_install zoxide
 brew_install fzf
+brew_install jq
 brew_install zsh-autosuggestions
 brew_install_cask ghostty
 brew_install_cask hammerspoon
