@@ -85,29 +85,18 @@ _prompt_tmux_restore_picker() {
   tmux has-session -t main 2>/dev/null && return 1
   command -v fzf >/dev/null 2>&1 || return 1
 
-  _picker_age() {
-    local f="$resurrect_dir/$1"
-    [[ -f "$f" ]] || { printf 'never'; return; }
-    local now mtime diff
-    now=$(date +%s)
-    mtime=$(stat -f %m "$f" 2>/dev/null || printf '0')
-    diff=$(( now - mtime ))
-    if   (( diff < 60 ));    then printf '%ds ago' "$diff"
-    elif (( diff < 3600 ));  then printf '%dm ago' "$(( diff / 60 ))"
-    elif (( diff < 86400 )); then printf '%dh ago' "$(( diff / 3600 ))"
-    else                          printf '%dd ago' "$(( diff / 86400 ))"
-    fi
-  }
+  # Source _file_age_str from the shared helpers file
+  source "${${(%):-%x}:A:h:h}/scripts/_tmux-save-common.sh"
 
   local -a entries=()
   local line
   while IFS= read -r line; do
     [[ -n "$line" && -f "$resurrect_dir/$line" ]] && \
-      entries+=("auto  $(_picker_age "$line")"$'\t'"$line")
+      entries+=("auto  $(_file_age_str "$resurrect_dir/$line")"$'\t'"$line")
   done < <(cat "$resurrect_dir/last-auto-list" 2>/dev/null)
   while IFS= read -r line; do
     [[ -n "$line" && -f "$resurrect_dir/$line" ]] && \
-      entries+=("manual  $(_picker_age "$line")"$'\t'"$line")
+      entries+=("manual  $(_file_age_str "$resurrect_dir/$line")"$'\t'"$line")
   done < <(cat "$resurrect_dir/last-manual-list" 2>/dev/null)
 
   # Fallback to 'last' symlink if no lists
@@ -115,7 +104,7 @@ _prompt_tmux_restore_picker() {
     local resolved
     resolved="$(readlink "$resurrect_dir/last" 2>/dev/null || printf '')"
     [[ -n "$resolved" && -f "$resurrect_dir/$resolved" ]] && \
-      entries+=("auto  $(_picker_age "$resolved")"$'\t'"$resolved")
+      entries+=("auto  $(_file_age_str "$resurrect_dir/$resolved")"$'\t'"$resolved")
   fi
 
   (( ${#entries[@]} == 0 )) && return 1

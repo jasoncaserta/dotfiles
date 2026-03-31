@@ -5,8 +5,9 @@
 # The shim intercepts `tmux display-message` calls without -p and silently drops them.
 _run_save() {
   local save_script="$1"
-  local _tmpdir
+  local _tmpdir real_tmux
   _tmpdir=$(mktemp -d)
+  real_tmux=$(command -v tmux)
   cat > "$_tmpdir/tmux" <<'SHIM'
 #!/bin/bash
 cmd=""; has_p=0
@@ -15,8 +16,8 @@ for arg in "$@"; do
   [[ "$arg" == "-p" ]] && has_p=1
 done
 [[ "$cmd" == "display-message" && "$has_p" -eq 0 ]] && exit 0
-exec /opt/homebrew/bin/tmux "$@"
 SHIM
+  printf 'exec %s "$@"\n' "$real_tmux" >> "$_tmpdir/tmux"
   chmod +x "$_tmpdir/tmux"
   PATH="$_tmpdir:$PATH" "$save_script"
   rm -rf "$_tmpdir"

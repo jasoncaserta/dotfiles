@@ -70,8 +70,12 @@ merge_hooks_json() {
     green "  created $dst"
     return
   fi
-  local tmp
+  local tmp added skipped
   tmp=$(mktemp)
+  added=$(jq -rn --slurpfile d "$dst" --slurpfile s "$src" \
+    '[($s[0].hooks // {}) | keys[] | select(. as $k | ($d[0].hooks // {})[$k] == null)] | select(length > 0) | join(", ")')
+  skipped=$(jq -rn --slurpfile d "$dst" --slurpfile s "$src" \
+    '[($s[0].hooks // {}) | keys[] | select(. as $k | ($d[0].hooks // {})[$k] != null)] | select(length > 0) | join(", ")')
   jq -s '
     .[0] as $dst | .[1] as $src |
     $dst | .hooks = (
@@ -79,6 +83,8 @@ merge_hooks_json() {
       (($src.hooks // {}) | with_entries(select(.key as $k | ($dst.hooks // {})[$k] == null)))
     )
   ' "$dst" "$src" > "$tmp" && mv "$tmp" "$dst"
+  [[ -n "$added" ]] && green "  added hooks: $added"
+  [[ -n "$skipped" ]] && green "  skipped (already defined): $skipped"
   green "  merged $dst"
 }
 
