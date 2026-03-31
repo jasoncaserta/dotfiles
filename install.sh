@@ -179,6 +179,7 @@ if [[ "$role" == leader ]]; then
   link "$DOTFILES/scripts/notify.sh"      "$HOME/.notify.sh"
   link "$DOTFILES/git/gitignore_global"   "$HOME/.config/git/ignore"
   link "$DOTFILES/claude/settings.json"   "$HOME/.claude/settings.json"
+  link "$DOTFILES/claude/skills"          "$HOME/.claude/skills"
   link "$DOTFILES/codex/hooks.json"       "$HOME/.codex/hooks.json"
   link "$DOTFILES/starship/starship.toml" "$HOME/.config/starship.toml"
   chmod +x "$DOTFILES/scripts/notify.sh"
