@@ -1,0 +1,63 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+format = """\
+$directory\
+${custom.dir_end}\
+$git_branch\
+${custom.branch_end}\
+$git_status\
+$fill\
+$cmd_duration\
+${custom.time_open}\
+$time\n\
+$character"""
+
+[directory]
+format = "[  $path ]($style)"
+style = "bg:#3B76F0 fg:#ffffff bold"
+truncation_length = 10
+truncate_to_repo = false
+
+[custom.dir_end]
+command = "echo"
+when = 'git rev-parse --git-dir > /dev/null 2>&1 && exit 1 || exit 0'
+format = "[](fg:#3B76F0)"
+
+[git_branch]
+format = "[](fg:#3B76F0 bg:#F0A500)[  $branch ]($style)"
+style = "bg:#F0A500 fg:#1C1C1C bold"
+
+[custom.branch_end]
+command = "echo"
+when = 'git rev-parse --git-dir >/dev/null 2>&1 && s=$(git status -sb 2>/dev/null) && [ "$(echo "$s" | wc -l)" -eq 1 ] && ! echo "$s" | grep -qE "ahead|behind"'
+format = "[](fg:#F0A500)"
+
+[git_status]
+format = "([](fg:#F0A500 bg:#2DC55E)[ $all_status$ahead_behind ](bg:#2DC55E fg:#1C1C1C bold)[](fg:#2DC55E))"
+
+[cmd_duration]
+format = "[](fg:#F0A500)[ $duration ](bg:#F0A500 fg:#1C1C1C bold)[](fg:#6272A4 bg:#F0A500)"
+min_time = 2_000
+
+[custom.time_open]
+command = "echo"
+when = 'test -f "$STARSHIP_CMD_FAST_FILE"'
+format = "[](fg:#6272A4)"
+
+[time]
+disabled = false
+format = "[ $time ](bg:#6272A4 fg:#ffffff bold)"
+time_format = "%I:%M %p"
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+
+[hostname]
+disabled = true
+
+[username]
+disabled = true
+
+[fill]
+symbol = " "
