@@ -383,10 +383,10 @@ if command -v fzf >/dev/null 2>&1 && command -v eza >/dev/null 2>&1; then
 fi
 
 # History
-HISTFILE="$HOME/.zsh_history"
-HISTSIZE=100000
-SAVEHIST=100000
-setopt HIST_IGNORE_DUPS HIST_IGNORE_SPACE SHARE_HISTORY
+HISTFILE="${HISTFILE:-$HOME/.zsh_history}"
+HISTSIZE=${HISTSIZE:-100000}
+SAVEHIST=${SAVEHIST:-100000}
+setopt HIST_IGNORE_ALL_DUPS HIST_IGNORE_SPACE SHARE_HISTORY
 
 # fzf key bindings: Ctrl+R (history), Ctrl+T (file search), Alt+C (cd)
 [[ -f /opt/homebrew/opt/fzf/shell/key-bindings.zsh ]] && \
