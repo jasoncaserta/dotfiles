@@ -1,6 +1,6 @@
 # dotfiles
 
-Ghostty + tmux + zsh + Starship setup for macOS with smart terminal notifications.
+Ghostty + tmux + zsh + Starship + eza + zoxide setup for macOS with smart terminal notifications.
 
 > **Tab terminology:** "tab" means a tmux window throughout — Ghostty native tabs aren't available in the quick terminal.
 
@@ -89,16 +89,34 @@ Git segments only appear inside a git repo. The status segment only appears when
 
 Prompt config lives in `starship/starship.toml`. Requires the [JetBrainsMono Nerd Font](https://www.nerdfonts.com) for icons — install with `brew install --cask font-jetbrains-mono-nerd-font`.
 
+**Directory listing**
+`ls` is aliased to `eza --icons`, showing folder and file icons using Nerd Font glyphs.
+
+**Shell autosuggestions**
+As you type, a faded suggestion appears based on your command history. Press Tab, Right arrow, or `Ctrl+E` to accept the full suggestion, `Ctrl+F` to accept one word at a time.
+
+**Smart cd**
+`cd` is replaced by zoxide — frecency-based directory jumping. `cd foo` works as normal; `cd foo` with a partial name jumps to the most frequent match.
+
+Pressing Tab after `cd ` or `z ` opens an fzf picker showing subdirectories with the same icons as `ls`. Typing filters the list; Enter inserts the selection. Works with partial paths too — `cd Pro` + Tab filters to directories matching "Pro".
+
 ## Requirements
 
 - macOS
-- [Ghostty](https://ghostty.org) — terminal
-- [tmux](https://github.com/tmux/tmux) — `brew install tmux`
-- [Hammerspoon](https://www.hammerspoon.org) — handles notification clicks
-- [Starship](https://starship.rs) — prompt — `brew install starship`
-- [JetBrainsMono Nerd Font](https://www.nerdfonts.com) — `brew install --cask font-jetbrains-mono-nerd-font`
-- [Homebrew](https://brew.sh)
+- [Homebrew](https://brew.sh) — install manually
 - zsh (macOS default)
+
+The following are installed automatically by `install.sh`:
+
+- [Ghostty](https://ghostty.org)
+- [Hammerspoon](https://www.hammerspoon.org)
+- [tmux](https://github.com/tmux/tmux)
+- [Starship](https://starship.rs)
+- [eza](https://github.com/eza-community/eza)
+- [zoxide](https://github.com/ajeetdsouza/zoxide)
+- [fzf](https://github.com/junegunn/fzf)
+- [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions)
+- [JetBrainsMono Nerd Font](https://www.nerdfonts.com)
 
 ## Install
 

@@ -16,7 +16,7 @@ _terminal_alert_preexec() {
 
 _terminal_alert_precmd() {
   if (( _terminal_alert_started_at == 0 )); then
-    touch /tmp/.starship_cmd_fast 2>/dev/null
+    touch "$STARSHIP_CMD_FAST_FILE" 2>/dev/null
     return 0
   fi
 
@@ -29,9 +29,9 @@ _terminal_alert_precmd() {
   _terminal_alert_command=''
 
   if (( runtime < 2 )); then
-    touch /tmp/.starship_cmd_fast 2>/dev/null
+    touch "$STARSHIP_CMD_FAST_FILE" 2>/dev/null
   else
-    rm -f /tmp/.starship_cmd_fast 2>/dev/null
+    rm -f "$STARSHIP_CMD_FAST_FILE" 2>/dev/null
   fi
 
   (( runtime >= TERMINAL_ALERT_MIN_SECONDS )) || return 0
@@ -339,8 +339,63 @@ EOF
   esac
 }
 
-# Starship prompt
-eval "$(starship init zsh)"
+# zoxide as cd
+command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh --cmd cd)"
+
+# cd + Tab: show eza --icons entries in fzf (requires: brew install fzf)
+if command -v fzf >/dev/null 2>&1 && command -v eza >/dev/null 2>&1; then
+  _fzf_eza_cd() {
+    local typed="${LBUFFER##* }"
+    local base="." query="$typed"
+    if [[ "$typed" == */* ]]; then
+      base="${typed%/*}"
+      query="${typed##*/}"
+      [[ -z "$base" ]] && base="/"
+    fi
+    local selected
+    selected=$(eza --icons=always --color=always --only-dirs "$base" 2>/dev/null \
+      | fzf --ansi --query="$query" --height=50% --layout=reverse 2>/dev/null)
+    [[ -z "$selected" ]] && { zle reset-prompt; return; }
+    # Strip ANSI codes then the leading icon + space to get the bare name
+    local clean
+    clean=$(printf '%s' "$selected" \
+      | sed $'s/\033\\[[0-9;]*m//g' \
+      | sed 's/^[^ ]* //')
+    local cmd="${LBUFFER%% *}"
+    [[ "$base" == "." ]] \
+      && LBUFFER="$cmd $clean" \
+      || LBUFFER="$cmd ${base%/}/$clean"
+    zle reset-prompt
+  }
+  zle -N _fzf_eza_cd
+
+  _tab_or_complete() {
+    if [[ -n "$POSTDISPLAY" ]]; then
+      zle autosuggest-accept
+    elif [[ "$LBUFFER" =~ ^(cd|z)[[:space:]] ]]; then
+      _fzf_eza_cd
+    else
+      zle complete-word
+    fi
+  }
+  zle -N _tab_or_complete
+  bindkey '^I' _tab_or_complete
+fi
+
+# eza as ls with icons
+if command -v eza >/dev/null 2>&1; then
+  alias ls='eza --icons'
+fi
+
+# Autosuggestions from history (requires: brew install zsh-autosuggestions)
+[[ -f /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && \
+  source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+# Starship prompt — session-scoped flag file avoids cross-session clobber
+export STARSHIP_CMD_FAST_FILE="/tmp/.starship_cmd_fast_$$"
+_starship_cleanup() { rm -f "$STARSHIP_CMD_FAST_FILE" 2>/dev/null; }
+add-zsh-hook zshexit _starship_cleanup
+command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
 
 # Auto-attach Ghostty shells to a persistent tmux session.
 if command -v tmux >/dev/null 2>&1; then

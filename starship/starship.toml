@@ -41,7 +41,7 @@ min_time = 2_000
 
 [custom.time_open]
 command = "echo"
-when = 'test -f /tmp/.starship_cmd_fast'
+when = 'test -f "$STARSHIP_CMD_FAST_FILE"'
 format = "[](fg:#6272A4)"
 
 [time]

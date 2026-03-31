@@ -108,6 +108,47 @@ if [[ "$(uname)" != "Darwin" ]]; then
   exit 1
 fi
 
+# ── dependencies ──────────────────────────────────────────────────────────────
+
+brew_install() {
+  local pkg="$1"
+  if brew list "$pkg" >/dev/null 2>&1; then
+    green "  already installed: $pkg"
+  else
+    echo "  installing $pkg..."
+    brew install "$pkg"
+    green "  installed $pkg"
+  fi
+}
+
+brew_install_cask() {
+  local pkg="$1"
+  if brew list --cask "$pkg" >/dev/null 2>&1; then
+    green "  already installed: $pkg"
+  else
+    echo "  installing $pkg..."
+    brew install --cask "$pkg"
+    green "  installed $pkg"
+  fi
+}
+
+if ! command -v brew >/dev/null 2>&1; then
+  yellow "Homebrew not found — install it from https://brew.sh then re-run."
+  exit 1
+fi
+
+echo "Installing dependencies..."
+brew_install tmux
+brew_install starship
+brew_install eza
+brew_install zoxide
+brew_install fzf
+brew_install zsh-autosuggestions
+brew_install_cask ghostty
+brew_install_cask hammerspoon
+brew_install_cask font-jetbrains-mono-nerd-font
+echo
+
 # ── role selection ────────────────────────────────────────────────────────────
 
 role=follower
