@@ -13,6 +13,11 @@ local function shellSanitize(s)
     return s:gsub("[^%w@/._:-]", "")
 end
 
+-- Extract the tmux window key (e.g. "@116") from a raw window ID or session:window string
+local function extractWinKey(id)
+    return id:match("(@%w+)$") or id
+end
+
 -- Cached window key for the currently active tmux window in Ghostty.
 -- Updated when Ghostty is activated; used by keyTap/clickTap to avoid per-keystroke shell calls.
 local activeWinKey = nil
@@ -23,7 +28,7 @@ local function updateActiveWinKey()
     if client == "" then activeWinKey = nil; return end
     local winId, _ = hs.execute(tmuxBin .. " display-message -c '" .. client .. "' -p '#{window_id}' 2>/dev/null")
     winId = winId:gsub("%s+$", "")
-    activeWinKey = winId ~= "" and (winId:match("(@%w+)$") or winId) or nil
+    activeWinKey = winId ~= "" and extractWinKey(winId) or nil
 end
 
 local function dismissActiveIfPending()
@@ -102,7 +107,7 @@ end
 function showNotify(title, message, windowId)
     local winKey = ""
     if windowId and windowId ~= "" then
-        winKey = windowId:match("(@%w+)$") or windowId
+        winKey = extractWinKey(windowId)
     end
     local n = hs.notify.new(function()
         if winKey ~= "" then
