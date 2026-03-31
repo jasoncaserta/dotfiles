@@ -95,6 +95,11 @@ Prompt config lives in `starship/starship.toml`. Requires the [JetBrainsMono Ner
 **Shell autosuggestions**
 As you type, a faded suggestion appears based on your command history. Press Tab, Right arrow, or `Ctrl+E` to accept the full suggestion, `Ctrl+F` to accept one word at a time.
 
+**fzf key bindings**
+- `Ctrl+R` — fuzzy search command history; type to filter, Enter to run
+- `Ctrl+T` — fuzzy search files in the current directory tree; Enter to insert the path
+- `Alt+C` — fuzzy search subdirectories and cd into the selection
+
 **Smart cd**
 `cd` is replaced by zoxide — frecency-based directory jumping. `cd foo` works as normal; `cd foo` with a partial name jumps to the most frequent match.
 
@@ -173,6 +178,8 @@ After a reboot, open Ghostty and use the restore picker to choose a snapshot or 
 |----------|---------|-------------|
 | `TERMINAL_ALERT_MIN_SECONDS` | `3` | Minimum runtime before a done notification fires |
 | `NO_AUTO_TMUX` | unset | Set to any value to skip auto-attach to tmux on Ghostty launch |
+| `HISTFILE` | `~/.zsh_history` | Path to the zsh history file |
+| `HISTSIZE` / `SAVEHIST` | `100000` | Number of history entries kept in memory and on disk |
 
 Export these in `~/.zprofile` to change the defaults.
 
