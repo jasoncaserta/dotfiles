@@ -117,7 +117,9 @@ _prompt_tmux_restore_picker() {
     --layout=reverse \
     --delimiter=$'\t' \
     --with-nth=1 \
-    --no-sort 2>/dev/null) || return 1
+    --no-sort \
+    --bind 'start:execute-silent(fp=$PPID; (while kill -0 "$fp" 2>/dev/null; do sleep 0.5; tmux has-session -t main 2>/dev/null && kill "$fp" 2>/dev/null && break; done) &)' \
+    2>/dev/null) || return 1
 
   local file
   file=$(printf '%s' "$selected" | cut -d$'\t' -f2)

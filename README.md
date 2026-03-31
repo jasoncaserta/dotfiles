@@ -13,21 +13,14 @@ Ghostty always attaches to (or creates) a session named `main`. Works in the qui
 Snapshots save automatically every 30 seconds via a background loop that starts with Ghostty and runs as long as tmux is alive. Only one loop runs at a time. Green text appears in the status bar for 5 seconds after each save instead of the default resurrect banner.
 
 **Restore picker**
-On a fresh Ghostty launch when tmux is not running, an interactive picker shows recent saves grouped by type:
+On a fresh Ghostty launch when tmux is not running, an fzf picker shows recent saves grouped by type:
 
 ```
-Restore tmux session?
-
-  Auto saves:
-  > [1] 2m ago
-    [2] 35m ago
-
-  Manual saves:
-    [3] 1h ago
-
-    [n] New session
-
-  ↑↓ or 1-3/n, Enter to confirm
+Restore tmux? >
+> auto    2m ago
+  auto    35m ago
+  manual  1h ago
+  new session
 ```
 
 If the quick terminal and a regular Ghostty window open simultaneously, both show the picker; whichever you answer first wins and the other dismisses automatically.
