@@ -25,10 +25,10 @@ local activeWinKey = nil
 local function updateActiveWinKey()
     local client, _ = hs.execute(tmuxBin .. " list-clients -F '#{client_activity} #{client_name}' | sort -rn | head -1 | awk '{print $2}'")
     client = shellSanitize(client:gsub("%s+$", ""))
-    if client == "" then activeWinKey = nil; return end
+    if client == "" then return end  -- keep cached activeWinKey on failure
     local winId, _ = hs.execute(tmuxBin .. " display-message -c '" .. client .. "' -p '#{window_id}' 2>/dev/null")
     winId = winId:gsub("%s+$", "")
-    activeWinKey = winId ~= "" and extractWinKey(winId) or nil
+    if winId ~= "" then activeWinKey = extractWinKey(winId) end  -- only update on success
 end
 
 local function dismissActiveIfPending()

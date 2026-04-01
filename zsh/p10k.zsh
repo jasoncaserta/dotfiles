@@ -33,7 +33,8 @@
   typeset -g POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(
     # =========================[ Line #1 ]=========================
     dir                     # current directory
-    vcs                     # git status
+    vcs                     # git branch
+    custom_git_status       # git status (green, only when dirty)
     # =========================[ Line #2 ]=========================
     newline                 # \n
     prompt_char             # prompt symbol
@@ -359,9 +360,9 @@
   #####################################[ vcs: git status ]######################################
   # Version control background colors.
   typeset -g POWERLEVEL9K_VCS_CLEAN_BACKGROUND='#F0A500'
-  typeset -g POWERLEVEL9K_VCS_MODIFIED_BACKGROUND='#2DC55E'
-  typeset -g POWERLEVEL9K_VCS_UNTRACKED_BACKGROUND='#2DC55E'
-  typeset -g POWERLEVEL9K_VCS_CONFLICTED_BACKGROUND='#2DC55E'
+  typeset -g POWERLEVEL9K_VCS_MODIFIED_BACKGROUND='#F0A500'
+  typeset -g POWERLEVEL9K_VCS_UNTRACKED_BACKGROUND='#F0A500'
+  typeset -g POWERLEVEL9K_VCS_CONFLICTED_BACKGROUND='#F0A500'
   typeset -g POWERLEVEL9K_VCS_LOADING_BACKGROUND='#F0A500'
 
   # Branch icon. Set this parameter to '\UE0A0 ' for the popular Powerline branch icon.
@@ -430,51 +431,50 @@
       res+="${meta}:${clean}${(V)VCS_STATUS_REMOTE_BRANCH//\%/%%}"
     fi
 
-    # Display "wip" if the latest commit's summary contains "wip" or "WIP".
-    if [[ $VCS_STATUS_COMMIT_SUMMARY == (|*[^[:alnum:]])(wip|WIP)(|[^[:alnum:]]*) ]]; then
-      res+=" ${modified}wip"
-    fi
-
-    if (( VCS_STATUS_COMMITS_AHEAD || VCS_STATUS_COMMITS_BEHIND )); then
-      # ⇣42 if behind the remote.
-      (( VCS_STATUS_COMMITS_BEHIND )) && res+=" ${clean}⇣${VCS_STATUS_COMMITS_BEHIND}"
-      # ⇡42 if ahead of the remote; no leading space if also behind the remote: ⇣42⇡42.
-      (( VCS_STATUS_COMMITS_AHEAD && !VCS_STATUS_COMMITS_BEHIND )) && res+=" "
-      (( VCS_STATUS_COMMITS_AHEAD  )) && res+="${clean}⇡${VCS_STATUS_COMMITS_AHEAD}"
-    elif [[ -n $VCS_STATUS_REMOTE_BRANCH ]]; then
-      # Tip: Uncomment the next line to display '=' if up to date with the remote.
-      # res+=" ${clean}="
-    fi
-
-    # ⇠42 if behind the push remote.
-    (( VCS_STATUS_PUSH_COMMITS_BEHIND )) && res+=" ${clean}⇠${VCS_STATUS_PUSH_COMMITS_BEHIND}"
-    (( VCS_STATUS_PUSH_COMMITS_AHEAD && !VCS_STATUS_PUSH_COMMITS_BEHIND )) && res+=" "
-    # ⇢42 if ahead of the push remote; no leading space if also behind: ⇠42⇢42.
-    (( VCS_STATUS_PUSH_COMMITS_AHEAD  )) && res+="${clean}⇢${VCS_STATUS_PUSH_COMMITS_AHEAD}"
-    # *42 if have stashes.
-    (( VCS_STATUS_STASHES        )) && res+=" ${clean}*${VCS_STATUS_STASHES}"
-    # 'merge' if the repo is in an unusual state.
-    [[ -n $VCS_STATUS_ACTION     ]] && res+=" ${conflicted}${VCS_STATUS_ACTION}"
-    # ~42 if have merge conflicts.
-    (( VCS_STATUS_NUM_CONFLICTED )) && res+=" ${conflicted}~${VCS_STATUS_NUM_CONFLICTED}"
-    # +42 if have staged changes.
-    (( VCS_STATUS_NUM_STAGED     )) && res+=" ${modified}+${VCS_STATUS_NUM_STAGED}"
-    # !42 if have unstaged changes.
-    (( VCS_STATUS_NUM_UNSTAGED   )) && res+=" ${modified}!${VCS_STATUS_NUM_UNSTAGED}"
-    # ?42 if have untracked files. It's really a question mark, your font isn't broken.
-    # See POWERLEVEL9K_VCS_UNTRACKED_ICON above if you want to use a different icon.
-    # Remove the next line if you don't want to see untracked files at all.
-    (( VCS_STATUS_NUM_UNTRACKED  )) && res+=" ${untracked}${(g::)POWERLEVEL9K_VCS_UNTRACKED_ICON}${VCS_STATUS_NUM_UNTRACKED}"
-    # "─" if the number of unstaged files is unknown. This can happen due to
-    # POWERLEVEL9K_VCS_MAX_INDEX_SIZE_DIRTY (see below) being set to a non-negative number lower
-    # than the number of files in the Git index, or due to bash.showDirtyState being set to false
-    # in the repository config. The number of staged and untracked files may also be unknown
-    # in this case.
-    (( VCS_STATUS_HAS_UNSTAGED == -1 )) && res+=" ${modified}─"
-
     typeset -g my_git_format=$res
   }
   functions -M my_git_formatter 2>/dev/null
+
+  # Git status segment — green, only shown when repo is dirty.
+  # Uses git commands directly since custom segments run in a subshell.
+  function _p10k_git_status() {
+    git rev-parse --git-dir >/dev/null 2>&1 || return 1
+
+    local git_status
+    git_status=$(git status --porcelain 2>/dev/null) || return 1
+
+    local staged=0 unstaged=0 untracked=0
+    if [[ -n $git_status ]]; then
+      while IFS= read -r line; do
+        [[ ${line:0:2} == '??' ]] && { (( untracked++ )); continue; }
+        [[ ${line:0:1} != ' ' ]] && (( staged++ ))
+        [[ ${line:1:1} != ' ' ]] && (( unstaged++ ))
+      done <<< "$git_status"
+    fi
+
+    local ahead=0 behind=0
+    local counts
+    counts=$(git rev-list --count --left-right '@{u}...HEAD' 2>/dev/null)
+    if [[ -n $counts ]]; then
+      behind=${counts%%$'\t'*}
+      ahead=${counts##*$'\t'}
+    fi
+
+    local res=''
+    (( behind    )) && res+=" ⇣${behind}"
+    (( ahead     )) && res+=" ⇡${ahead}"
+    (( staged    )) && res+=" +${staged}"
+    (( unstaged  )) && res+=" !${unstaged}"
+    (( untracked )) && res+=" ?${untracked}"
+
+    [[ -n $res ]] || return 1
+    printf '%s' "${res# }"
+  }
+
+  typeset -g POWERLEVEL9K_CUSTOM_GIT_STATUS='_p10k_git_status'
+  typeset -g POWERLEVEL9K_CUSTOM_GIT_STATUS_BACKGROUND='#2DC55E'
+  typeset -g POWERLEVEL9K_CUSTOM_GIT_STATUS_FOREGROUND='#1C1C1C'
+  typeset -g POWERLEVEL9K_CUSTOM_GIT_STATUS_VISUAL_IDENTIFIER_EXPANSION=
 
   # Don't count the number of unstaged, untracked and conflicted files in Git repositories with
   # more than this many files in the index. Negative value means infinity.
@@ -1811,7 +1811,7 @@
   #   - verbose: Enable instant prompt and print a warning when detecting console output during
   #              zsh initialization. Choose this if you've never tried instant prompt, haven't
   #              seen the warning, or if you are unsure what this all means.
-  typeset -g POWERLEVEL9K_INSTANT_PROMPT=verbose
+  typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
 
   # Hot reload allows you to change POWERLEVEL9K options after Powerlevel10k has been initialized.
   # For example, you can type POWERLEVEL9K_BACKGROUND=red and see your prompt turn red. Hot reload

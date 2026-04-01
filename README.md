@@ -1,6 +1,6 @@
 # dotfiles
 
-Ghostty + tmux + zsh + Starship + eza + zoxide setup for macOS with smart terminal notifications.
+Ghostty + tmux + zsh + Powerlevel10k + eza + zoxide setup for macOS with smart terminal notifications.
 
 > **Tab terminology:** "tab" means a tmux window throughout — Ghostty native tabs aren't available in the quick terminal.
 
@@ -67,20 +67,22 @@ When a notification fires, a 🔔 appears in the status bar for that tab and a p
 **Tab auto-rename**
 The tab title updates to the currently running command and resets to `zsh` when it finishes.
 
-**Starship prompt**
+**Powerlevel10k prompt**
 A powerline-style prompt with colored segments on the left and right:
 
-- **Left**: directory (blue) → git branch (orange) → git status (green)
+- **Left**: directory (blue) → git branch (orange) → git status (green, only when dirty)
 - **Right**: command duration (orange, only when ≥2s) → current time (purple)
 
 Git segments only appear inside a git repo. The status segment only appears when there are uncommitted changes or the branch is ahead/behind its remote.
 
+Command duration only appears when the last command took 2 seconds or more.
+
 ```
- ~/Projects/dotfiles   better-notif-contents   !?      3s   02:34 PM
+ ~/Projects/dotfiles   main   +1 !3 ?1      3s   02:34 PM
 ❯
 ```
 
-Prompt config lives in `starship/starship.toml`. Requires the [JetBrainsMono Nerd Font](https://www.nerdfonts.com) for icons — install with `brew install --cask font-jetbrains-mono-nerd-font`.
+Prompt config lives in `zsh/p10k.zsh`. Run `p10k configure` to regenerate from the interactive wizard. Requires the [JetBrainsMono Nerd Font](https://www.nerdfonts.com) for icons — install with `brew install --cask font-jetbrains-mono-nerd-font`.
 
 **Directory listing**
 `ls` is aliased to `eza --icons`, showing folder and file icons using Nerd Font glyphs.
@@ -109,7 +111,7 @@ The following are installed automatically by `install.sh`:
 - [Ghostty](https://ghostty.org)
 - [Hammerspoon](https://www.hammerspoon.org)
 - [tmux](https://github.com/tmux/tmux)
-- [Starship](https://starship.rs)
+- [Powerlevel10k](https://github.com/romkatv/powerlevel10k)
 - [eza](https://github.com/eza-community/eza)
 - [zoxide](https://github.com/ajeetdsouza/zoxide)
 - [fzf](https://github.com/junegunn/fzf)
