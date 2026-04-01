@@ -36,6 +36,9 @@ local function dismissActiveIfPending()
         dismissNotify(activeWinKey)
         hs.execute(tmuxBin .. " set-option -wuq -t '" .. activeWinKey .. "' @needs_attention 2>/dev/null; " .. tmuxBin .. " refresh-client -S 2>/dev/null")
     end
+    if pendingNotifications["__bare__"] then
+        dismissNotify("__bare__")
+    end
 end
 
 -- Dismiss a pending notification by window key (e.g. "@116")
@@ -69,8 +72,6 @@ end
 local keyTap = hs.eventtap.new({hs.eventtap.event.types.keyDown}, function(_event)
     if not hasPendingNotifications() then return false end
     updateActiveWinKey()
-    if not activeWinKey then return false end
-    if not pendingNotifications[activeWinKey] then return false end
     dismissActiveIfPending()
     return false
 end)
@@ -113,14 +114,12 @@ end
 -- Notification helper called from ~/.notify.sh via:
 --   hs -c "showNotify('title', 'message', 'windowId')"
 function showNotify(title, message, windowId)
-    local winKey = ""
+    local winKey = "__bare__"
     if windowId and windowId ~= "" then
         winKey = extractWinKey(windowId)
     end
     local n = hs.notify.new(function()
-        if winKey ~= "" then
-            pendingNotifications[winKey] = nil
-        end
+        pendingNotifications[winKey] = nil
         hs.application.launchOrFocus("Ghostty")
         if windowId and windowId ~= "" then
             hs.timer.doAfter(0.2, function()
@@ -143,11 +142,9 @@ function showNotify(title, message, windowId)
         hasActionButton = false,
         withdrawAfter = 0,
     })
-    if winKey ~= "" then
-        if pendingNotifications[winKey] then
-            pendingNotifications[winKey]:withdraw()
-        end
-        pendingNotifications[winKey] = n
+    if pendingNotifications[winKey] then
+        pendingNotifications[winKey]:withdraw()
     end
+    pendingNotifications[winKey] = n
     n:send()
 end
