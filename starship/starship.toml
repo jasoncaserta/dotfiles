@@ -8,7 +8,8 @@ ${custom.branch_end}\
 $git_status\
 $fill\
 $cmd_duration\
-${custom.time_open}\
+${custom.time_sep_slow}\
+${custom.time_sep_fast}\
 $time\n\
 $character"""
 
@@ -36,10 +37,17 @@ format = "[](fg:#F0A500)"
 format = "([](fg:#F0A500 bg:#2DC55E)[ $all_status$ahead_behind ](bg:#2DC55E fg:#1C1C1C bold)[](fg:#2DC55E))"
 
 [cmd_duration]
-format = "[](fg:#F0A500)[ $duration ](bg:#F0A500 fg:#1C1C1C bold)[](fg:#6272A4 bg:#F0A500)"
+format = "[](fg:#F0A500)[ $duration ](bg:#F0A500 fg:#1C1C1C bold)"
 min_time = 2_000
 
-[custom.time_open]
+# Arrow shown when cmd_duration is visible (duration >= 2s): orange -> blue transition
+[custom.time_sep_slow]
+command = "echo"
+when = '[ "${STARSHIP_DURATION:-0}" -ge 2000 ]'
+format = "[](fg:#6272A4 bg:#F0A500)"
+
+# Arrow shown when cmd_duration is hidden (duration < 2s): terminal -> blue
+[custom.time_sep_fast]
 command = "echo"
 when = '[ "${STARSHIP_DURATION:-0}" -lt 2000 ]'
 format = "[](fg:#6272A4)"

@@ -126,7 +126,7 @@ fi
 
 echo "Installing dependencies..."
 brew_install tmux
-brew_install starship
+brew_install powerlevel10k
 brew_install eza
 brew_install zoxide
 brew_install fzf
@@ -169,7 +169,7 @@ if [[ "$role" == leader ]]; then
   link "$DOTFILES/claude/settings.json"   "$HOME/.claude/settings.json"
   link "$DOTFILES/claude/skills"          "$HOME/.claude/skills"
   link "$DOTFILES/codex/hooks.json"       "$HOME/.codex/hooks.json"
-  link "$DOTFILES/starship/starship.toml" "$HOME/.config/starship.toml"
+  link "$DOTFILES/zsh/p10k.zsh"           "$HOME/.p10k.zsh"
   chmod +x "$DOTFILES/scripts/notify.sh"
 
 # ── follower: non-destructive includes + hook merge ───────────────────────────
@@ -185,7 +185,7 @@ else
     append_if_missing "$HOME/.config/git/ignore" "$line"
   done < "$DOTFILES/git/gitignore_global"
   link "$DOTFILES/scripts/notify.sh"      "$HOME/.notify.sh"
-  link "$DOTFILES/starship/starship.toml" "$HOME/.config/starship.toml"
+  link "$DOTFILES/zsh/p10k.zsh"           "$HOME/.p10k.zsh"
   chmod +x "$DOTFILES/scripts/notify.sh"
   merge_hooks_json "$DOTFILES/claude/settings.json" "$HOME/.claude/settings.json"
   merge_hooks_json "$DOTFILES/codex/hooks.json"     "$HOME/.codex/hooks.json"
