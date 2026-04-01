@@ -212,3 +212,5 @@ tmux prefix is `Ctrl-A`.
 | `prefix Ctrl-r` | Restore tmux snapshot manually |
 | `M-Left / M-Right` | Previous / next tab |
 | `Middle-click status bar` | Kill clicked tab |
+
+Mouse text selection is overridden so that releasing the mouse copies to clipboard without scrolling to the bottom of the pane. Press `Escape` or `q` to exit copy mode and return to the bottom.
