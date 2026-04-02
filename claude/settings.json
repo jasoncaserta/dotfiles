@@ -1,5 +1,4 @@
 {
-  "preferredNotifChannel": "terminal_bell",
   "hooks": {
     "PreToolUse": [
       {
@@ -52,5 +51,17 @@
         ]
       }
     ]
+  },
+  "extraKnownMarketplaces": {
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
+    }
+  },
+  "preferredNotifChannel": "terminal_bell",
+  "enabledPlugins": {
+    "codex@openai-codex": true
   }
 }
