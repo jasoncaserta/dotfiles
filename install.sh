@@ -193,6 +193,12 @@ fi
 
 ensure_git_clone "https://github.com/tmux-plugins/tpm" "$HOME/.tmux/plugins/tpm"
 
+# Write the resolved dotfiles path so tmux helpers can locate scripts at
+# runtime regardless of where the repo was cloned.
+mkdir -p "$HOME/.config/dotfiles"
+printf '%s' "$DOTFILES" > "$HOME/.config/dotfiles/path"
+green "  wrote dotfiles path → ~/.config/dotfiles/path"
+
 # ── post-install ──────────────────────────────────────────────────────────────
 
 echo
