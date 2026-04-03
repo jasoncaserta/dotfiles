@@ -19,9 +19,10 @@ background-opacity = 0.72
 background-blur = 80
 bell-features = no-attention
 desktop-notifications = true
-notify-on-command-finish = always
-notify-on-command-finish-action = notify,bell
-notify-on-command-finish-after = 1s
+# Command-finish notifications are handled by the zsh precmd hook (3s threshold)
+# with tmux window attention tracking. Ghostty's built-in notifier is disabled
+# to avoid duplicate alerts and the 1s vs 3s threshold mismatch.
+notify-on-command-finish = never
 
 # Quick access
 

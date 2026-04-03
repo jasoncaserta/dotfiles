@@ -121,10 +121,12 @@ The following are installed automatically by `install.sh`:
 ## Install
 
 ```bash
-git clone https://github.com/jasoncaserta/dotfiles.git ~/Projects/dotfiles
-cd ~/Projects/dotfiles
+git clone https://github.com/jasoncaserta/dotfiles.git
+cd dotfiles
 ./install.sh
 ```
+
+The repo can be cloned to any path — `install.sh` resolves its own location and writes it to `~/.config/dotfiles/path` so tmux helpers find the scripts at runtime regardless of where you cloned.
 
 `./install.sh` installs the **follower** setup by default.
 
