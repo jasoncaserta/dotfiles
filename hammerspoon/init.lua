@@ -22,6 +22,30 @@ end
 -- Updated when Ghostty is activated; used by keyTap/clickTap to avoid per-keystroke shell calls.
 local activeWinKey = nil
 
+local function openGhosttyQuickTerminal()
+    local function sendToggle()
+        local ok = pcall(function()
+            -- macOS virtual keycode 50 is the ANSI grave/backquote key.
+            hs.eventtap.event.newKeyEvent({"cmd"}, 50, true):post()
+            hs.eventtap.event.newKeyEvent({"cmd"}, 50, false):post()
+        end)
+        return ok
+    end
+
+    local ghostty = hs.application.get("Ghostty")
+    if ghostty then
+        return sendToggle()
+    end
+
+    local launched = hs.application.launchOrFocus("Ghostty")
+    if not launched then return false end
+
+    hs.timer.doAfter(0.5, function()
+        sendToggle()
+    end)
+    return true
+end
+
 local function updateActiveWinKey()
     local client, _ = hs.execute(tmuxBin .. " list-clients -F '#{client_activity} #{client_name}' | sort -rn | head -1 | awk '{print $2}'")
     client = shellSanitize(client:gsub("%s+$", ""))
@@ -124,7 +148,9 @@ function showNotify(title, message, windowId)
     if winKey ~= "__bare__" then activeWinKey = winKey end
     local n = hs.notify.new(function()
         pendingNotifications[winKey] = nil
-        hs.application.launchOrFocus("Ghostty")
+        if not openGhosttyQuickTerminal() then
+            hs.application.launchOrFocus("Ghostty")
+        end
         if windowId and windowId ~= "" then
             hs.timer.doAfter(0.2, function()
                 local safeWindowId = shellSanitize(windowId)

@@ -33,7 +33,7 @@ auto: 3m ago  manual: 1h ago
 ```
 
 **Long-running command notifications**
-Any command taking longer than 3 seconds triggers a macOS notification when it finishes. The notification title shows the command name; clicking it focuses Ghostty and jumps to the tmux tab where it ran. Threshold is configurable via `TERMINAL_ALERT_MIN_SECONDS`.
+Any command taking longer than 3 seconds triggers a macOS notification when it finishes. The notification title shows the command name; clicking it opens Ghostty quick terminal and jumps to the tmux tab where it ran. Threshold is configurable via `TERMINAL_ALERT_MIN_SECONDS`.
 
 **Claude and Codex notifications**
 Both send notifications when they need attention, finish a turn, or hit a rate/token limit.
@@ -63,7 +63,7 @@ When a notification fires, a 🔔 appears in the status bar for that tab and a p
 | Focus any pane in the tab | ✓ | ✓ |
 | Start typing in the tab | ✓ | ✓ |
 | Click into Ghostty from another app while already on the tab | ✓ | ✓ |
-| Click the macOS notification | ✓ | ✓ (switches to the tab) |
+| Click the macOS notification | ✓ | ✓ (opens quick terminal and switches to the tab) |
 | Close the tab | n/a | ✓ |
 | Detach from tmux | ✓ all | ✓ all |
 
