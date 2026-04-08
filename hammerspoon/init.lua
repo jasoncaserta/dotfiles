@@ -66,15 +66,13 @@ local function hasPendingNotifications()
 end
 
 -- Key watcher: on first keystroke in Ghostty, dismiss the active tmux window's notification.
--- Defers the actual work via hs.timer.doAfter so the eventtap callback returns immediately
--- and does not block key delivery while shell queries are running.
+-- Re-resolves the active tmux window when any notification is pending so keyboard-driven
+-- window switches clear the correct tab on the next typed key.
 -- Only active while Ghostty is the frontmost app (started/stopped by ghosttyWatcher).
 local keyTap = hs.eventtap.new({hs.eventtap.event.types.keyDown}, function(_event)
     if not hasPendingNotifications() then return false end
-    hs.timer.doAfter(0, function()
-        updateActiveWinKey()
-        dismissActiveIfPending()
-    end)
+    updateActiveWinKey()
+    dismissActiveIfPending()
     return false
 end)
 
