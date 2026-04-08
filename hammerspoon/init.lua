@@ -22,6 +22,49 @@ end
 -- Updated when Ghostty is activated; used by keyTap/clickTap to avoid per-keystroke shell calls.
 local activeWinKey = nil
 
+local quickTerminalKeycode = hs.keycodes.map.grave or 50
+
+local function sendQuickTerminalToggle()
+    hs.eventtap.event.newKeyEvent({"cmd"}, quickTerminalKeycode, true):post()
+    hs.eventtap.event.newKeyEvent({"cmd"}, quickTerminalKeycode, false):post()
+end
+
+local function openGhosttyQuickTerminal()
+    local ghostty = hs.application.get("Ghostty")
+    if ghostty and ghostty:isFrontmost() then
+        return
+    end
+
+    if ghostty then
+        sendQuickTerminalToggle()
+        return
+    end
+
+    local launched = hs.application.launchOrFocus("Ghostty")
+    if not launched then
+        return
+    end
+
+    local attemptsRemaining = 20
+    local function waitForGhosttyAndToggle()
+        local app = hs.application.get("Ghostty")
+        if app and app:isFrontmost() then
+            sendQuickTerminalToggle()
+            return
+        end
+        attemptsRemaining = attemptsRemaining - 1
+        if attemptsRemaining <= 0 then
+            hs.application.launchOrFocus("Ghostty")
+            return
+        end
+        hs.timer.doAfter(0.1, waitForGhosttyAndToggle)
+    end
+
+    hs.timer.doAfter(0.1, function()
+        waitForGhosttyAndToggle()
+    end)
+end
+
 local function updateActiveWinKey()
     local client, _ = hs.execute(tmuxBin .. " list-clients -F '#{client_activity} #{client_name}' | sort -rn | head -1 | awk '{print $2}'")
     client = shellSanitize(client:gsub("%s+$", ""))
@@ -124,7 +167,7 @@ function showNotify(title, message, windowId)
     if winKey ~= "__bare__" then activeWinKey = winKey end
     local n = hs.notify.new(function()
         pendingNotifications[winKey] = nil
-        hs.application.launchOrFocus("Ghostty")
+        openGhosttyQuickTerminal()
         if windowId and windowId ~= "" then
             hs.timer.doAfter(0.2, function()
                 local safeWindowId = shellSanitize(windowId)
