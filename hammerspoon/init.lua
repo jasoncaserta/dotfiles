@@ -22,28 +22,47 @@ end
 -- Updated when Ghostty is activated; used by keyTap/clickTap to avoid per-keystroke shell calls.
 local activeWinKey = nil
 
+local quickTerminalKeycode = hs.keycodes.map.grave or 50
+
+local function sendQuickTerminalToggle()
+    hs.eventtap.event.newKeyEvent({"cmd"}, quickTerminalKeycode, true):post()
+    hs.eventtap.event.newKeyEvent({"cmd"}, quickTerminalKeycode, false):post()
+end
+
 local function openGhosttyQuickTerminal()
-    local function sendToggle()
-        local ok = pcall(function()
-            -- macOS virtual keycode 50 is the ANSI grave/backquote key.
-            hs.eventtap.event.newKeyEvent({"cmd"}, 50, true):post()
-            hs.eventtap.event.newKeyEvent({"cmd"}, 50, false):post()
-        end)
-        return ok
+    local ghostty = hs.application.get("Ghostty")
+    if ghostty and ghostty:isFrontmost() then
+        return
     end
 
-    local ghostty = hs.application.get("Ghostty")
     if ghostty then
-        return sendToggle()
+        sendQuickTerminalToggle()
+        return
     end
 
     local launched = hs.application.launchOrFocus("Ghostty")
-    if not launched then return false end
+    if not launched then
+        return
+    end
 
-    hs.timer.doAfter(0.5, function()
-        sendToggle()
+    local attemptsRemaining = 20
+    local function waitForGhosttyAndToggle()
+        local app = hs.application.get("Ghostty")
+        if app and app:isFrontmost() then
+            sendQuickTerminalToggle()
+            return
+        end
+        attemptsRemaining = attemptsRemaining - 1
+        if attemptsRemaining <= 0 then
+            hs.application.launchOrFocus("Ghostty")
+            return
+        end
+        hs.timer.doAfter(0.1, waitForGhosttyAndToggle)
+    end
+
+    hs.timer.doAfter(0.1, function()
+        waitForGhosttyAndToggle()
     end)
-    return true
 end
 
 local function updateActiveWinKey()
@@ -148,9 +167,7 @@ function showNotify(title, message, windowId)
     if winKey ~= "__bare__" then activeWinKey = winKey end
     local n = hs.notify.new(function()
         pendingNotifications[winKey] = nil
-        if not openGhosttyQuickTerminal() then
-            hs.application.launchOrFocus("Ghostty")
-        end
+        openGhosttyQuickTerminal()
         if windowId and windowId ~= "" then
             hs.timer.doAfter(0.2, function()
                 local safeWindowId = shellSanitize(windowId)
