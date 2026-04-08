@@ -50,6 +50,9 @@ Claude's `StopFailure` hook fires on any API error (rate limit, token limit, bil
 
 The `codex` shell wrapper automatically passes `-c features.codex_hooks=true`. Both `claude/settings.json` and `codex/hooks.json` are included and set up by the installer. tmux-resurrect is configured to relaunch `claude` and `codex` panes after restore.
 
+**tmux-only notifications**
+All hooks check for `TMUX_PANE` before firing — notifications only trigger when Claude is running inside tmux (i.e. this setup). Claude launched outside tmux, such as in a [Conductor](https://conductor.build) workspace or any other context, is silently ignored since those environments have their own notification systems.
+
 **Tab attention indicator**
 When a notification fires, a 🔔 appears in the status bar for that tab and a persistent macOS notification is shown. Both clear together under the same conditions:
 
