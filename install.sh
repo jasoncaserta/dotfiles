@@ -214,17 +214,42 @@ else
   echo "Done. To get future updates: git pull && ./install.sh"
   echo
 fi
-echo "Complete these steps if this is a fresh machine:"
+# ── tmux plugins ──────────────────────────────────────────────────────────────
+
+echo "Installing tmux plugins..."
+if [[ -x "$HOME/.tmux/plugins/tpm/bin/install_plugins" ]]; then
+  "$HOME/.tmux/plugins/tpm/bin/install_plugins" >/dev/null 2>&1 && green "  tmux plugins installed"
+else
+  yellow "  TPM not found; skipped plugin install"
+fi
+
+if tmux list-sessions >/dev/null 2>&1; then
+  tmux source ~/.tmux.conf 2>&1 && green "  tmux config reloaded"
+else
+  yellow "  no active tmux session; reload manually: tmux source ~/.tmux.conf"
+fi
 echo
-echo "  1. Grant Hammerspoon permissions (System Settings → Privacy & Security):"
-echo "       - Accessibility"
-echo "       - Notifications"
-echo "     Then reload: Hammerspoon menu bar icon → Reload Config"
+
+# ── Hammerspoon permissions ───────────────────────────────────────────────────
+
+hs_accessibility=""
+if command -v hs >/dev/null 2>&1; then
+  hs_accessibility=$(hs -c "print(hs.accessibilityState())" 2>/dev/null || true)
+fi
+
+if [[ "$hs_accessibility" == "true" ]]; then
+  green "  Hammerspoon Accessibility already granted"
+else
+  echo "Hammerspoon needs Accessibility permission — opening System Settings..."
+  open "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+  yellow "  → Enable Hammerspoon under Accessibility, then Notifications."
+  yellow "  → Then: Hammerspoon menu bar icon → Reload Config"
+fi
 echo
-echo "  2. Reload tmux config (inside an active tmux session):"
-echo "       tmux source ~/.tmux.conf"
-echo "       ~/.tmux/plugins/tpm/bin/install_plugins"
-echo
-echo "  3. Start a new shell (or open Ghostty) to apply zsh changes."
+
+# ── remaining manual steps ────────────────────────────────────────────────────
+
+echo "One last step:"
+echo "  • Start a new shell (or open Ghostty) to apply zsh changes."
 echo
 echo "After reboot, reopening Ghostty will auto-attach tmux and restore your last saved layout."

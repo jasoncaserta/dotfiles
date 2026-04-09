@@ -33,7 +33,7 @@ auto: 3m ago  manual: 1h ago
 ```
 
 **Long-running command notifications**
-Any command taking longer than 3 seconds triggers a macOS notification when it finishes. The notification title shows the command name; clicking it opens Ghostty quick terminal and jumps to the tmux tab where it ran. Threshold is configurable via `TERMINAL_ALERT_MIN_SECONDS`.
+Any command taking longer than 3 seconds triggers a macOS notification via Hammerspoon when it finishes. The notification title shows the command name; clicking it opens Ghostty quick terminal and jumps to the tmux tab where it ran. Threshold is configurable via `TERMINAL_ALERT_MIN_SECONDS`.
 
 **Claude and Codex notifications**
 Both send notifications when they need attention, finish a turn, or hit a rate/token limit.
@@ -147,9 +147,11 @@ To get updates as a follower: `git pull && ./install.sh`. Behavior changes are p
 
 ## Post-install
 
+`install.sh` handles tmux plugin installation and config reload automatically. Two steps remain manual:
+
 **1. Hammerspoon permissions**
 
-Open System Settings → Privacy & Security and grant Hammerspoon:
+`install.sh` opens System Settings → Accessibility automatically if permission hasn't been granted. Grant Hammerspoon:
 - Accessibility
 - Notifications
 
@@ -159,16 +161,11 @@ Then reload: Hammerspoon menu bar icon → Reload Config.
 
 Open System Settings → Notifications → Hammerspoon and set Alert Style to **Persistent**. This keeps notifications on screen until you switch to the relevant tab (or dismiss them manually).
 
+This setup does not intentionally fall back to Script Editor notifications. If you stop Hammerspoon or break the `hs` CLI integration, notifications will fail instead of switching to `osascript`.
+
 ![Hammerspoon notification settings](docs/hammerspoon-notification-settings.png)
 
-**3. Reload tmux** (inside an active tmux session)
-
-```bash
-tmux source ~/.tmux.conf
-~/.tmux/plugins/tpm/bin/install_plugins
-```
-
-**4. Restart your shell** or open a new Ghostty window for zsh changes to take effect.
+**3. Restart your shell** or open a new Ghostty window for zsh changes to take effect.
 
 After a reboot, open Ghostty and use the restore picker to choose a snapshot or start a new session.
 
