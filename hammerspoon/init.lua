@@ -164,8 +164,10 @@ end
 -- Only active while Ghostty is the frontmost app (started/stopped by ghosttyWatcher).
 local keyTap = hs.eventtap.new({hs.eventtap.event.types.keyDown}, function(_event)
     if not hasPendingNotifications() then return false end
-    updateActiveWinKey()
-    dismissActiveIfPending()
+    -- Defer so tmux has a chance to route the keystroke and update client_activity.
+    hs.timer.doAfter(0.05, function()
+        dismissVisiblePending()
+    end)
     return false
 end)
 
