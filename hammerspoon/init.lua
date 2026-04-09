@@ -164,7 +164,6 @@ end
 -- Only active while Ghostty is the frontmost app (started/stopped by ghosttyWatcher).
 local keyTap = hs.eventtap.new({hs.eventtap.event.types.keyDown}, function(_event)
     if not hasPendingNotifications() then return false end
-    -- Defer so tmux has a chance to route the keystroke and update client_activity.
     hs.timer.doAfter(0.05, function()
         dismissVisiblePending()
     end)
@@ -183,28 +182,20 @@ local clickTap = hs.eventtap.new({hs.eventtap.event.types.leftMouseUp}, function
     return false
 end)
 
--- App watcher: dismiss active window's notification when Ghostty gains focus;
--- start/stop keyTap and clickTap so they only run while Ghostty is in front.
+-- App watcher: dismiss active window's notification when Ghostty gains focus.
 local ghosttyWatcher = hs.application.watcher.new(function(name, event, _app)
     if name ~= "Ghostty" then return end
     if event == hs.application.watcher.activated then
-        updateActiveWinKey()
-        dismissActiveIfPending()
-        keyTap:start()
-        clickTap:start()
-    elseif event == hs.application.watcher.deactivated then
-        keyTap:stop()
-        clickTap:stop()
+        dismissVisiblePending()
     end
 end)
 ghosttyWatcher:start()
 
--- If Ghostty is already frontmost when this config loads, start the watchers immediately
-if hs.application.frontmostApplication():name() == "Ghostty" then
-    updateActiveWinKey()
-    keyTap:start()
-    clickTap:start()
-end
+-- Start eventtaps unconditionally — handlers early-return when nothing is
+-- pending, so the cost is negligible and we avoid state bugs where reloads
+-- happen while Ghostty is not frontmost.
+keyTap:start()
+clickTap:start()
 
 -- Notification helper invoked via the hammerspoon://showNotify URL event.
 function showNotify(title, message, windowId)
