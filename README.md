@@ -161,7 +161,7 @@ Then reload: Hammerspoon menu bar icon → Reload Config.
 
 Open System Settings → Notifications → Hammerspoon and set Alert Style to **Persistent**. This keeps notifications on screen until you switch to the relevant tab (or dismiss them manually).
 
-This setup does not intentionally fall back to Script Editor notifications. If you stop Hammerspoon or break the `hs` CLI integration, notifications will fail instead of switching to `osascript`.
+This setup intentionally does not fall back to Script Editor notifications. If Hammerspoon is not running, notifications will fail instead of switching to `osascript`.
 
 ![Hammerspoon notification settings](docs/hammerspoon-notification-settings.png)
 

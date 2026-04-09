@@ -1,10 +1,15 @@
 -- Clear any stale notifications from previous Hammerspoon sessions.
-local _delivered = hs.notify.deliveredNotifications()
-print("[reload] deliveredNotifications count=" .. tostring(#_delivered))
-for _, n in ipairs(_delivered) do n:withdraw() end
+for _, n in ipairs(hs.notify.deliveredNotifications()) do n:withdraw() end
 hs.notify.withdrawAll()
 
 local pendingNotifications = {}
+
+local function hasPendingNotifications()
+    for _ in pairs(pendingNotifications) do
+        return true
+    end
+    return false
+end
 
 -- Resolve tmux binary once at load time
 local tmuxBin = "/usr/bin/tmux"
@@ -90,10 +95,8 @@ local function updateActiveWinKey()
             local winId, _ = hs.execute(tmuxBin .. " display-message -c '" .. client .. "' -p '#{window_id}' 2>/dev/null")
             winId = winId:gsub("%s+$", "")
             local wk = extractWinKey(winId)
-            print("[updateActiveWinKey] client=" .. client .. " wk=" .. wk .. " pending=" .. tostring(pendingNotifications[wk] ~= nil))
             if wk ~= "" and pendingNotifications[wk] then
                 activeWinKey = wk
-                print("[updateActiveWinKey] matched pending, activeWinKey=" .. wk)
                 return
             end
         end
@@ -103,7 +106,6 @@ local function updateActiveWinKey()
     winId = winId:gsub("%s+$", "")
     if winId ~= "" then
         activeWinKey = extractWinKey(winId)
-        print("[updateActiveWinKey] fallback activeWinKey=" .. activeWinKey)
     end
 end
 
@@ -119,18 +121,10 @@ end
 
 -- Dismiss a pending notification by window key (e.g. "@116")
 function dismissNotify(winKey)
-    print("[dismissNotify] called with winKey=" .. tostring(winKey))
     local n = pendingNotifications[winKey]
     if n then
-        print("[dismissNotify] found and withdrawing")
         n:withdraw()
         pendingNotifications[winKey] = nil
-    else
-        print("[dismissNotify] no match, keys=" .. (function()
-            local ks = {}
-            for k in pairs(pendingNotifications) do ks[#ks+1] = k end
-            return table.concat(ks, ",")
-        end)())
     end
 end
 
@@ -148,7 +142,6 @@ function dismissVisiblePending()
             local winId, _ = hs.execute(tmuxBin .. " display-message -c '" .. client .. "' -p '#{window_id}' 2>/dev/null")
             winId = winId:gsub("%s+$", "")
             local wk = extractWinKey(winId)
-            print("[dismissVisiblePending] client=" .. client .. " wk=" .. wk .. " pending=" .. tostring(pendingNotifications[wk] ~= nil))
             if wk ~= "" and pendingNotifications[wk] then
                 dismissNotify(wk)
                 hs.execute(tmuxBin .. " set-option -wuq -t '" .. wk .. "' @needs_attention 2>/dev/null; " .. tmuxBin .. " refresh-client -S 2>/dev/null")
@@ -163,13 +156,6 @@ function dismissAllNotify()
         n:withdraw()
         pendingNotifications[k] = nil
     end
-end
-
-function hasPendingNotifications()
-    for _ in pairs(pendingNotifications) do
-        return true
-    end
-    return false
 end
 
 -- Key watcher: on first keystroke in Ghostty, dismiss the active tmux window's notification.
@@ -187,15 +173,9 @@ end)
 -- After a brief delay (to let tmux process the click first), re-queries the active
 -- window and dismisses its notification if pending. Avoids relying on hs CLI IPC.
 local clickTap = hs.eventtap.new({hs.eventtap.event.types.leftMouseUp}, function(_event)
-    print("[clickTap] fired, pending=" .. tostring(hasPendingNotifications()) .. " activeWinKey=" .. tostring(activeWinKey))
     if not hasPendingNotifications() then return false end
     hs.timer.doAfter(0.075, function()
-        local before = activeWinKey
         updateActiveWinKey()
-        print("[clickTap] after update: activeWinKey=" .. tostring(activeWinKey) .. " (was " .. tostring(before) .. ")")
-        for k, _ in pairs(pendingNotifications) do
-            print("[clickTap] pending: " .. tostring(k))
-        end
         dismissActiveIfPending()
     end)
     return false
@@ -210,11 +190,9 @@ local ghosttyWatcher = hs.application.watcher.new(function(name, event, _app)
         dismissActiveIfPending()
         keyTap:start()
         clickTap:start()
-        print("[ghosttyWatcher] activated, clickTap started")
     elseif event == hs.application.watcher.deactivated then
         keyTap:stop()
         clickTap:stop()
-        print("[ghosttyWatcher] deactivated, clickTap stopped")
     end
 end)
 ghosttyWatcher:start()
@@ -224,17 +202,14 @@ if hs.application.frontmostApplication():name() == "Ghostty" then
     updateActiveWinKey()
     keyTap:start()
     clickTap:start()
-    print("[init] Ghostty already frontmost, clickTap started")
 end
 
--- Notification helper called from ~/.notify.sh via:
---   hs -c "showNotify('title', 'message', 'windowId')"
+-- Notification helper invoked via the hammerspoon://showNotify URL event.
 function showNotify(title, message, windowId)
     local winKey = "__bare__"
     if windowId and windowId ~= "" then
         winKey = extractWinKey(windowId)
     end
-    print("[showNotify] title=" .. tostring(title) .. " winKey=" .. tostring(winKey))
     -- Track which window has an active notification so keyTap can dismiss
     -- it without querying tmux first (handles the case where activeWinKey
     -- was not set yet, e.g. on first load before Ghostty was activated).

@@ -4,7 +4,6 @@
     "pr": ""
   },
   "includeCoAuthoredBy": false,
-  "model": "opus",
   "hooks": {
     "PreToolUse": [
       {

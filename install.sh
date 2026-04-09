@@ -232,19 +232,10 @@ echo
 
 # ── Hammerspoon permissions ───────────────────────────────────────────────────
 
-hs_accessibility=""
-if command -v hs >/dev/null 2>&1; then
-  hs_accessibility=$(hs -c "print(hs.accessibilityState())" 2>/dev/null || true)
-fi
-
-if [[ "$hs_accessibility" == "true" ]]; then
-  green "  Hammerspoon Accessibility already granted"
-else
-  echo "Hammerspoon needs Accessibility permission — opening System Settings..."
-  open "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
-  yellow "  → Enable Hammerspoon under Accessibility, then Notifications."
-  yellow "  → Then: Hammerspoon menu bar icon → Reload Config"
-fi
+echo "Hammerspoon needs Accessibility + Notifications — opening System Settings..."
+open "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+yellow "  → Enable Hammerspoon under Accessibility, then Notifications."
+yellow "  → Then: Hammerspoon menu bar icon → Reload Config"
 echo
 
 # ── remaining manual steps ────────────────────────────────────────────────────
