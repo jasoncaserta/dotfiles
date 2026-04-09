@@ -1,4 +1,9 @@
 {
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "includeCoAuthoredBy": false,
   "hooks": {
     "PreToolUse": [
       {
@@ -6,7 +11,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ -n \"$TMUX_PANE\" ] && $HOME/.notify.sh \"Claude\" \"needs attention\" \"$TMUX_PANE\" || true"
+            "command": "[ -n \"$TMUX_PANE\" ] && { printf '\\a'; $HOME/.notify.sh \"Claude\" \"needs attention\" \"$TMUX_PANE\"; } || true"
           }
         ]
       }
@@ -16,7 +21,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ -n \"$TMUX_PANE\" ] && $HOME/.notify.sh \"Claude\" \"done!\" \"$TMUX_PANE\" || true"
+            "command": "[ -n \"$TMUX_PANE\" ] && { printf '\\a'; $HOME/.notify.sh \"Claude\" \"done!\" \"$TMUX_PANE\"; } || true"
           }
         ]
       }
@@ -26,7 +31,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ -n \"$TMUX_PANE\" ] && $HOME/.notify.sh \"Claude\" \"hit an error :(\" \"$TMUX_PANE\" || true"
+            "command": "[ -n \"$TMUX_PANE\" ] && { printf '\\a'; $HOME/.notify.sh \"Claude\" \"hit an error :(\" \"$TMUX_PANE\"; } || true"
           }
         ]
       }
@@ -36,7 +41,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ -n \"$TMUX_PANE\" ] && $HOME/.notify.sh \"Claude\" \"needs attention\" \"$TMUX_PANE\" || true"
+            "command": "[ -n \"$TMUX_PANE\" ] && { printf '\\a'; $HOME/.notify.sh \"Claude\" \"needs attention\" \"$TMUX_PANE\"; } || true"
           }
         ]
       }
@@ -46,11 +51,14 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ -n \"$TMUX_PANE\" ] && $HOME/.notify.sh \"Claude\" \"needs attention\" \"$TMUX_PANE\" || true"
+            "command": "[ -n \"$TMUX_PANE\" ] && { printf '\\a'; $HOME/.notify.sh \"Claude\" \"needs attention\" \"$TMUX_PANE\"; } || true"
           }
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "codex@openai-codex": true
   },
   "extraKnownMarketplaces": {
     "openai-codex": {
@@ -60,8 +68,19 @@
       }
     }
   },
-  "preferredNotifChannel": "terminal_bell",
-  "enabledPlugins": {
-    "codex@openai-codex": true
-  }
+  "mcpServers": {
+    "browser-tools": {
+      "command": "npx",
+      "args": [
+        "@agentdeskai/browser-tools-mcp"
+      ]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest"
+      ]
+    }
+  },
+  "preferredNotifChannel": "terminal_bell"
 }

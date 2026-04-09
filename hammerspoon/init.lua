@@ -1,6 +1,15 @@
-hs.ipc.cliInstall()
+-- Clear any stale notifications from previous Hammerspoon sessions.
+for _, n in ipairs(hs.notify.deliveredNotifications()) do n:withdraw() end
+hs.notify.withdrawAll()
 
 local pendingNotifications = {}
+
+local function hasPendingNotifications()
+    for _ in pairs(pendingNotifications) do
+        return true
+    end
+    return false
+end
 
 -- Resolve tmux binary once at load time
 local tmuxBin = "/usr/bin/tmux"
@@ -66,12 +75,38 @@ local function openGhosttyQuickTerminal()
 end
 
 local function updateActiveWinKey()
-    local client, _ = hs.execute(tmuxBin .. " list-clients -F '#{client_activity} #{client_name}' | sort -rn | head -1 | awk '{print $2}'")
-    client = shellSanitize(client:gsub("%s+$", ""))
-    if client == "" then return end  -- keep cached activeWinKey on failure
-    local winId, _ = hs.execute(tmuxBin .. " display-message -c '" .. client .. "' -p '#{window_id}' 2>/dev/null")
+    -- Get all client names sorted by most-recently-active first.
+    local out, _ = hs.execute(tmuxBin .. " list-clients -F '#{client_activity} #{client_name}' 2>/dev/null | sort -rn")
+    if not out or out:gsub("%s+", "") == "" then return end
+    local clients = {}
+    for line in out:gmatch("[^\n]+") do
+        local client = line:match("^%d+ (.+)$")
+        if client then
+            client = shellSanitize(client:gsub("%s+$", ""))
+            if client ~= "" then clients[#clients+1] = client end
+        end
+    end
+    if #clients == 0 then return end
+    -- When notifications are pending, scan all clients to find one showing the
+    -- pending window. Clicking a Ghostty tab does not update client_activity, so
+    -- the most-active client may not be the one the user just switched to.
+    if hasPendingNotifications() then
+        for _, client in ipairs(clients) do
+            local winId, _ = hs.execute(tmuxBin .. " display-message -c '" .. client .. "' -p '#{window_id}' 2>/dev/null")
+            winId = winId:gsub("%s+$", "")
+            local wk = extractWinKey(winId)
+            if wk ~= "" and pendingNotifications[wk] then
+                activeWinKey = wk
+                return
+            end
+        end
+    end
+    -- Fall back to most-active client's current window.
+    local winId, _ = hs.execute(tmuxBin .. " display-message -c '" .. clients[1] .. "' -p '#{window_id}' 2>/dev/null")
     winId = winId:gsub("%s+$", "")
-    if winId ~= "" then activeWinKey = extractWinKey(winId) end  -- only update on success
+    if winId ~= "" then
+        activeWinKey = extractWinKey(winId)
+    end
 end
 
 local function dismissActiveIfPending()
@@ -93,6 +128,28 @@ function dismissNotify(winKey)
     end
 end
 
+-- Dismiss any pending notifications whose window is currently visible to
+-- some tmux client. Useful when invoked from tmux hooks where the hook's
+-- window_id may not match the pending key (e.g. Ghostty tab switches don't
+-- update tmux client_activity).
+function dismissVisiblePending()
+    if not hasPendingNotifications() then return end
+    local out, _ = hs.execute(tmuxBin .. " list-clients -F '#{client_name}' 2>/dev/null")
+    if not out then return end
+    for client in out:gmatch("[^\n]+") do
+        client = shellSanitize(client:gsub("%s+$", ""))
+        if client ~= "" then
+            local winId, _ = hs.execute(tmuxBin .. " display-message -c '" .. client .. "' -p '#{window_id}' 2>/dev/null")
+            winId = winId:gsub("%s+$", "")
+            local wk = extractWinKey(winId)
+            if wk ~= "" and pendingNotifications[wk] then
+                dismissNotify(wk)
+                hs.execute(tmuxBin .. " set-option -wuq -t '" .. wk .. "' @needs_attention 2>/dev/null; " .. tmuxBin .. " refresh-client -S 2>/dev/null")
+            end
+        end
+    end
+end
+
 -- Dismiss all pending notifications (e.g. on tmux detach)
 function dismissAllNotify()
     for k, n in pairs(pendingNotifications) do
@@ -101,61 +158,39 @@ function dismissAllNotify()
     end
 end
 
-local function hasPendingNotifications()
-    for _ in pairs(pendingNotifications) do
-        return true
-    end
-    return false
-end
-
--- Key watcher: on first keystroke in Ghostty, dismiss the active tmux window's notification.
--- Re-resolves the active tmux window when any notification is pending so keyboard-driven
--- window switches clear the correct tab on the next typed key.
+-- Key watcher: on first keystroke in Ghostty, dismiss any visible pending notification.
 -- Only active while Ghostty is the frontmost app (started/stopped by ghosttyWatcher).
 local keyTap = hs.eventtap.new({hs.eventtap.event.types.keyDown}, function(_event)
+    if not hasPendingNotifications() then return false end
+    dismissVisiblePending()
+    return false
+end)
+
+-- Mouse click watcher: catches status-bar tab clicks that switch the tmux window.
+-- Re-queries the active window and dismisses its notification if pending.
+local clickTap = hs.eventtap.new({hs.eventtap.event.types.leftMouseUp}, function(_event)
     if not hasPendingNotifications() then return false end
     updateActiveWinKey()
     dismissActiveIfPending()
     return false
 end)
 
--- Mouse click watcher: catches status-bar tab clicks that switch the tmux window.
--- After a brief delay (to let tmux process the click first), re-queries the active
--- window and dismisses its notification if pending. Avoids relying on hs CLI IPC.
-local clickTap = hs.eventtap.new({hs.eventtap.event.types.leftMouseUp}, function(_event)
-    if not hasPendingNotifications() then return false end
-    hs.timer.doAfter(0.075, function()
-        updateActiveWinKey()
-        dismissActiveIfPending()
-    end)
-    return false
-end)
-
--- App watcher: dismiss active window's notification when Ghostty gains focus;
--- start/stop keyTap and clickTap so they only run while Ghostty is in front.
+-- App watcher: dismiss active window's notification when Ghostty gains focus.
 local ghosttyWatcher = hs.application.watcher.new(function(name, event, _app)
     if name ~= "Ghostty" then return end
     if event == hs.application.watcher.activated then
-        updateActiveWinKey()
-        dismissActiveIfPending()
-        keyTap:start()
-        clickTap:start()
-    elseif event == hs.application.watcher.deactivated then
-        keyTap:stop()
-        clickTap:stop()
+        dismissVisiblePending()
     end
 end)
 ghosttyWatcher:start()
 
--- If Ghostty is already frontmost when this config loads, start the watchers immediately
-if hs.application.frontmostApplication():name() == "Ghostty" then
-    updateActiveWinKey()
-    keyTap:start()
-    clickTap:start()
-end
+-- Start eventtaps unconditionally — handlers early-return when nothing is
+-- pending, so the cost is negligible and we avoid state bugs where reloads
+-- happen while Ghostty is not frontmost.
+keyTap:start()
+clickTap:start()
 
--- Notification helper called from ~/.notify.sh via:
---   hs -c "showNotify('title', 'message', 'windowId')"
+-- Notification helper invoked via the hammerspoon://showNotify URL event.
 function showNotify(title, message, windowId)
     local winKey = "__bare__"
     if windowId and windowId ~= "" then
@@ -169,18 +204,16 @@ function showNotify(title, message, windowId)
         pendingNotifications[winKey] = nil
         openGhosttyQuickTerminal()
         if windowId and windowId ~= "" then
-            hs.timer.doAfter(0.2, function()
-                local safeWindowId = shellSanitize(windowId)
-                local safeWinKey = shellSanitize(winKey)
-                local client, _ = hs.execute(tmuxBin .. " list-clients -F '#{client_activity} #{client_name}' | sort -rn | head -1 | awk '{print $2}'")
-                client = shellSanitize(client:gsub("%s+$", ""))
-                if client ~= "" then
-                    hs.execute(tmuxBin .. " switch-client -c '" .. client .. "' -t '" .. safeWindowId .. "' 2>/dev/null")
-                end
-                if safeWinKey ~= "" then
-                    hs.execute(tmuxBin .. " set-option -wuq -t '" .. safeWinKey .. "' @needs_attention 2>/dev/null; " .. tmuxBin .. " refresh-client -S 2>/dev/null")
-                end
-            end)
+            local safeWindowId = shellSanitize(windowId)
+            local safeWinKey = shellSanitize(winKey)
+            local client, _ = hs.execute(tmuxBin .. " list-clients -F '#{client_activity} #{client_name}' | sort -rn | head -1 | awk '{print $2}'")
+            client = shellSanitize(client:gsub("%s+$", ""))
+            if client ~= "" then
+                hs.execute(tmuxBin .. " switch-client -c '" .. client .. "' -t '" .. safeWindowId .. "' 2>/dev/null")
+            end
+            if safeWinKey ~= "" then
+                hs.execute(tmuxBin .. " set-option -wuq -t '" .. safeWinKey .. "' @needs_attention 2>/dev/null; " .. tmuxBin .. " refresh-client -S 2>/dev/null")
+            end
         end
     end, {
         title = title,
@@ -195,3 +228,35 @@ function showNotify(title, message, windowId)
     pendingNotifications[winKey] = n
     n:send()
 end
+
+-- URL event handlers. Shell scripts invoke these via `open -g hammerspoon://<action>?...`.
+-- Using hs.urlEvent instead of hs.ipc because hs.ipc's CFMessagePort IPC crashes
+-- Hammerspoon 1.1.1 on macOS 26 with a PAC signature trap.
+local function b64decode(s)
+    if not s or s == "" then return "" end
+    return hs.base64.decode(s) or ""
+end
+
+local urlEvent = require("hs.urlEvent")
+require("hs.base64")
+
+urlEvent.bind("shownotify", function(_, params)
+    local title = b64decode(params.title)
+    local message = b64decode(params.message)
+    local target = b64decode(params.target)
+    showNotify(title, message, target)
+end)
+
+urlEvent.bind("dismissnotify", function(_, params)
+    if params.winKey and params.winKey ~= "" then
+        dismissNotify(params.winKey)
+    end
+end)
+
+urlEvent.bind("dismissvisiblepending", function()
+    dismissVisiblePending()
+end)
+
+urlEvent.bind("dismissallnotify", function()
+    dismissAllNotify()
+end)
