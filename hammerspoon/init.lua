@@ -158,27 +158,20 @@ function dismissAllNotify()
     end
 end
 
--- Key watcher: on first keystroke in Ghostty, dismiss the active tmux window's notification.
--- Re-resolves the active tmux window when any notification is pending so keyboard-driven
--- window switches clear the correct tab on the next typed key.
+-- Key watcher: on first keystroke in Ghostty, dismiss any visible pending notification.
 -- Only active while Ghostty is the frontmost app (started/stopped by ghosttyWatcher).
 local keyTap = hs.eventtap.new({hs.eventtap.event.types.keyDown}, function(_event)
     if not hasPendingNotifications() then return false end
-    hs.timer.doAfter(0.05, function()
-        dismissVisiblePending()
-    end)
+    dismissVisiblePending()
     return false
 end)
 
 -- Mouse click watcher: catches status-bar tab clicks that switch the tmux window.
--- After a brief delay (to let tmux process the click first), re-queries the active
--- window and dismisses its notification if pending. Avoids relying on hs CLI IPC.
+-- Re-queries the active window and dismisses its notification if pending.
 local clickTap = hs.eventtap.new({hs.eventtap.event.types.leftMouseUp}, function(_event)
     if not hasPendingNotifications() then return false end
-    hs.timer.doAfter(0.075, function()
-        updateActiveWinKey()
-        dismissActiveIfPending()
-    end)
+    updateActiveWinKey()
+    dismissActiveIfPending()
     return false
 end)
 
@@ -211,18 +204,16 @@ function showNotify(title, message, windowId)
         pendingNotifications[winKey] = nil
         openGhosttyQuickTerminal()
         if windowId and windowId ~= "" then
-            hs.timer.doAfter(0.2, function()
-                local safeWindowId = shellSanitize(windowId)
-                local safeWinKey = shellSanitize(winKey)
-                local client, _ = hs.execute(tmuxBin .. " list-clients -F '#{client_activity} #{client_name}' | sort -rn | head -1 | awk '{print $2}'")
-                client = shellSanitize(client:gsub("%s+$", ""))
-                if client ~= "" then
-                    hs.execute(tmuxBin .. " switch-client -c '" .. client .. "' -t '" .. safeWindowId .. "' 2>/dev/null")
-                end
-                if safeWinKey ~= "" then
-                    hs.execute(tmuxBin .. " set-option -wuq -t '" .. safeWinKey .. "' @needs_attention 2>/dev/null; " .. tmuxBin .. " refresh-client -S 2>/dev/null")
-                end
-            end)
+            local safeWindowId = shellSanitize(windowId)
+            local safeWinKey = shellSanitize(winKey)
+            local client, _ = hs.execute(tmuxBin .. " list-clients -F '#{client_activity} #{client_name}' | sort -rn | head -1 | awk '{print $2}'")
+            client = shellSanitize(client:gsub("%s+$", ""))
+            if client ~= "" then
+                hs.execute(tmuxBin .. " switch-client -c '" .. client .. "' -t '" .. safeWindowId .. "' 2>/dev/null")
+            end
+            if safeWinKey ~= "" then
+                hs.execute(tmuxBin .. " set-option -wuq -t '" .. safeWinKey .. "' @needs_attention 2>/dev/null; " .. tmuxBin .. " refresh-client -S 2>/dev/null")
+            end
         end
     end, {
         title = title,
