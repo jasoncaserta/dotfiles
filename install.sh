@@ -239,10 +239,20 @@ echo
 
 # ── Hammerspoon permissions ───────────────────────────────────────────────────
 
-echo "Hammerspoon needs Accessibility + Notifications — opening System Settings..."
-open "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
-yellow "  → Enable Hammerspoon under Accessibility, then Notifications."
-yellow "  → Then: Hammerspoon menu bar icon → Reload Config"
+_hs_has_accessibility() {
+  local tcc_db="$HOME/Library/Application Support/com.apple.TCC/TCC.db"
+  sqlite3 "$tcc_db" \
+    "SELECT allowed FROM access WHERE service='kTCCServiceAccessibility' AND client='org.hammerspoon.Hammerspoon';" \
+    2>/dev/null | grep -q '^1$'
+}
+if _hs_has_accessibility; then
+  yellow "  Hammerspoon Accessibility already enabled — skipping System Settings."
+else
+  echo "Hammerspoon needs Accessibility + Notifications — opening System Settings..."
+  open "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+  yellow "  → Enable Hammerspoon under Accessibility, then Notifications."
+  yellow "  → Then: Hammerspoon menu bar icon → Reload Config"
+fi
 echo
 
 # ── remaining manual steps ────────────────────────────────────────────────────
