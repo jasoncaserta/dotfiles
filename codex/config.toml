@@ -1,0 +1,35 @@
+model = "gpt-5.4"
+
+[features]
+codex_hooks = true
+[projects."/Users/jasoncaserta/Projects"]
+trust_level = "trusted"
+
+[projects."/Users/jasoncaserta/Projects/pickGPU"]
+trust_level = "trusted"
+
+[projects."/Users/jasoncaserta/Projects/dotfiles"]
+trust_level = "trusted"
+
+[projects."/Users/jasoncaserta/Projects/claw-code"]
+trust_level = "trusted"
+
+[projects."/Users/jasoncaserta/Projects/RC_shoulder_tap"]
+trust_level = "trusted"
+
+[projects."/Users/jasoncaserta/Projects/Retro Radio"]
+trust_level = "trusted"
+
+[notice.model_migrations]
+"gpt-5.3-codex" = "gpt-5.4"
+
+[plugins."github@openai-curated"]
+enabled = true
+
+[mcp_servers.browser-tools]
+command = "node"
+args = ["/Users/jasoncaserta/Projects/Retro Radio/scripts/browser-tools-mcp-fixed.cjs"]
+
+[mcp_servers.playwright]
+command = "npx"
+args = ["@playwright/mcp@latest", "--browser", "chromium"]

@@ -48,7 +48,20 @@ Both send notifications when they need attention, finish a turn, or hit a rate/t
 
 Claude's `StopFailure` hook fires on any API error (rate limit, token limit, billing, etc.) and sends **"hit an error :("**. Codex detects limits via a stateful tmux-pane watcher and sends **"ran out of tokens :("** only on new blocking states.
 
-The `codex` shell wrapper automatically passes `-c features.codex_hooks=true`. Both `claude/settings.json` and `codex/hooks.json` are included and set up by the installer. tmux-resurrect is configured to relaunch `claude` and `codex` panes after restore.
+The `codex` shell wrapper automatically passes `-c features.codex_hooks=true`. The installer sets up all AI tooling config:
+
+| File | Symlink target | Notes |
+|------|---------------|-------|
+| `~/.claude/settings.json` | `claude/settings.json` | Hooks config |
+| `~/.claude/CLAUDE.md` | `claude/CLAUDE.md` | Global instructions (search hygiene, large-file read rules, build gate policy) |
+| `~/.codex/hooks.json` | `codex/hooks.json` | Hooks config |
+| `~/.codex/config.toml` | `codex/config.toml` | Model, features, project trust levels, MCP servers (leader only — has machine-specific paths) |
+| `~/.codex/rules/` | `codex/rules/` | Auto-allow rules for Codex command approval |
+
+tmux-resurrect is configured to relaunch `claude` and `codex` panes after restore.
+
+**tmux diagnostics**
+Run `bash scripts/tmux-check.sh` to diagnose common issues in one pass — checks the tmux server, resurrect plugin, last save age, global hooks, shell script syntax, and the p10k symlink. Use this instead of manually running `tmux show-hooks`, `zsh -n`, and resurrection file inspections separately.
 
 **tmux-only notifications**
 All hooks check for `TMUX_PANE` before firing — notifications only trigger when Claude is running inside tmux (i.e. this setup). Claude launched outside tmux, such as in a [Conductor](https://conductor.build) workspace or any other context, is silently ignored since those environments have their own notification systems.

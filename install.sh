@@ -167,8 +167,11 @@ if [[ "$role" == leader ]]; then
   link "$DOTFILES/scripts/notify.sh"      "$HOME/.notify.sh"
   link "$DOTFILES/git/gitignore_global"   "$HOME/.config/git/ignore"
   link "$DOTFILES/claude/settings.json"   "$HOME/.claude/settings.json"
+  link "$DOTFILES/claude/CLAUDE.md"       "$HOME/.claude/CLAUDE.md"
   link "$DOTFILES/claude/skills"          "$HOME/.claude/skills"
   link "$DOTFILES/codex/hooks.json"       "$HOME/.codex/hooks.json"
+  link "$DOTFILES/codex/config.toml"      "$HOME/.codex/config.toml"
+  link "$DOTFILES/codex/rules"            "$HOME/.codex/rules"
   link "$DOTFILES/zsh/p10k.zsh"           "$HOME/.p10k.zsh"
   chmod +x "$DOTFILES/scripts/notify.sh"
 
@@ -187,8 +190,10 @@ else
   link "$DOTFILES/scripts/notify.sh"      "$HOME/.notify.sh"
   link "$DOTFILES/zsh/p10k.zsh"           "$HOME/.p10k.zsh"
   chmod +x "$DOTFILES/scripts/notify.sh"
+  link "$DOTFILES/claude/CLAUDE.md"       "$HOME/.claude/CLAUDE.md"
   merge_hooks_json "$DOTFILES/claude/settings.json" "$HOME/.claude/settings.json"
   merge_hooks_json "$DOTFILES/codex/hooks.json"     "$HOME/.codex/hooks.json"
+  # config.toml has machine-specific paths (MCP servers, project trust levels) — skip on follower
 fi
 
 ensure_git_clone "https://github.com/tmux-plugins/tpm" "$HOME/.tmux/plugins/tpm"
