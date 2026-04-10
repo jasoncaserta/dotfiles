@@ -162,7 +162,9 @@ end
 -- Only active while Ghostty is the frontmost app (started/stopped by ghosttyWatcher).
 local keyTap = hs.eventtap.new({hs.eventtap.event.types.keyDown}, function(_event)
     if not hasPendingNotifications() then return false end
-    dismissVisiblePending()
+    -- Defer so the hs.execute calls in dismissVisiblePending run outside the
+    -- synchronous eventtap callback context, where they are reliable.
+    hs.timer.doAfter(0.05, dismissVisiblePending)
     return false
 end)
 

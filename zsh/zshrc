@@ -264,8 +264,9 @@ if command -v tmux >/dev/null 2>&1; then
           fi
 
           if tmux new-session -d -s main 2>/dev/null; then
-            if (( should_restore )) && [ -x "$HOME/Projects/dotfiles/scripts/tmux-restore.sh" ] && [ -n "$TMUX_RESTORE_FILE" ]; then
-              tmux attach-session -t main \; run-shell "$HOME/Projects/dotfiles/scripts/tmux-restore.sh '$TMUX_RESTORE_FILE'"
+            _DOTFILES_DIR="$(cat ~/.config/dotfiles/path 2>/dev/null)"
+            if (( should_restore )) && [ -x "$_DOTFILES_DIR/scripts/tmux-restore.sh" ] && [ -n "$TMUX_RESTORE_FILE" ]; then
+              tmux attach-session -t main \; run-shell "$_DOTFILES_DIR/scripts/tmux-restore.sh '$TMUX_RESTORE_FILE'"
               return
             fi
           else
