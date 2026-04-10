@@ -21,8 +21,6 @@ bash /Users/jasoncaserta/Projects/dotfiles/scripts/tmux-check.sh
 
 This script runs the common check sequence in one pass and prints a summary. Only dig deeper into individual files if the script output points to a specific issue.
 
-For shell syntax errors: `zsh -n <file>` is sufficient — do not source the file to check syntax.
-
 ## Install / Symlink Changes
 
 `install.sh` manages all symlinks. When adding a new dotfile:

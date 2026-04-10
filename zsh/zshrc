@@ -186,9 +186,6 @@ EOF
   esac
 }
 
-# zoxide as cd
-command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh --cmd cd)"
-
 # cd + Tab: show eza --icons entries in fzf (requires: brew install fzf)
 if command -v fzf >/dev/null 2>&1 && command -v eza >/dev/null 2>&1; then
   _fzf_eza_cd() {
@@ -288,3 +285,6 @@ if command -v tmux >/dev/null 2>&1; then
       ;;
   esac
 fi
+
+# zoxide as cd. Keep this at the end of the shell configuration.
+command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh --cmd cd)"

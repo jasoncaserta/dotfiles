@@ -1,4 +1,4 @@
-# Global Claude Code Rules
+# Global Codex Rules
 
 ## Search Hygiene
 
@@ -11,17 +11,15 @@ Always exclude noise directories from any search or grep:
 
 Pattern: `rg --glob '!node_modules/**' --glob '!dist/**' --glob '!__pycache__/**' --glob '!.venv/**'`
 
-Before dumping content matches, use `rg -l` to identify which files are relevant, then read only those files.
-
-Limit grep output with `-m 20` when hunting for a definition or first occurrence. Use `head`/line-range reads instead of full-file reads when you only need a section.
+Use `rg -l` to identify relevant files before reading content. Limit output with `-m 20` when looking for a first occurrence.
 
 ## Large File Reads
 
-For config files over ~20KB (e.g. p10k.zsh at 95KB), never read the full file unless the task requires understanding the whole file. Use `Read` with `offset`/`limit` to read only the section being changed. Identify the relevant line range first with a targeted `rg -n`.
+For config files over ~20KB, never read the full file unless the task requires understanding the whole thing. Identify the relevant line range first with `rg -n`, then read only that section.
 
 ## Iterative Edits
 
-Batch all planned changes to a file into a single pass. Do not read → edit → re-read → edit again on the same file within a session. If verification is needed after an edit, re-read only the changed section, not the whole file.
+Batch all planned changes to a file into a single pass. Do not read → edit → re-read → edit again on the same file. If verification is needed after an edit, check only the changed section.
 
 ## Build / Lint Gates
 

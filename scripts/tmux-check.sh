@@ -55,12 +55,24 @@ echo ""
 echo "=== shell syntax ==="
 for f in "$SCRIPT_DIR"/*.sh "$SCRIPT_DIR"/_*.sh "$HOME"/.zshrc "$HOME"/.zprofile; do
   [[ -f "$f" ]] || continue
-  if bash -n "$f" 2>/dev/null && zsh -n "$f" 2>/dev/null; then
-    ok "$(basename "$f")"
-  else
-    warn "$(basename "$f") — syntax error:"
-    bash -n "$f" 2>&1 | sed 's/^/    /'
-  fi
+  case "$f" in
+    *.zshrc|*.zprofile|*/.zshrc|*/.zprofile)
+      if zsh -n "$f" 2>/dev/null; then
+        ok "$(basename "$f")"
+      else
+        warn "$(basename "$f") — syntax error:"
+        zsh -n "$f" 2>&1 | sed 's/^/    /'
+      fi
+      ;;
+    *)
+      if bash -n "$f" 2>/dev/null && zsh -n "$f" 2>/dev/null; then
+        ok "$(basename "$f")"
+      else
+        warn "$(basename "$f") — syntax error:"
+        bash -n "$f" 2>&1 | sed 's/^/    /'
+      fi
+      ;;
+  esac
 done
 
 # 7. p10k.zsh symlink
