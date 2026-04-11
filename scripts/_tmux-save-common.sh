@@ -23,6 +23,25 @@ SHIM
   rm -rf "$_tmpdir"
 }
 
+# Rewrite a resurrect snapshot in place so it only contains the persistent
+# session we actually restore into.
+_filter_snapshot_to_main() {
+  local snapshot="$1"
+  local tmp
+
+  [[ -n "$snapshot" && -f "$snapshot" ]] || return 0
+
+  tmp="$(mktemp)"
+  awk '
+    BEGIN { FS = "\t"; OFS = "\t" }
+    /^pane\t/ && $2 == "main" { print; next }
+    /^window\t/ && $2 == "main" { print; next }
+    /^grouped_session\t/ && ($2 == "main" || $3 == "main") { print; next }
+    /^state\t/ { print "state", "main", ""; next }
+  ' "$snapshot" > "$tmp"
+  mv "$tmp" "$snapshot"
+}
+
 # Prepend new_file to list, keeping at most the 3 most recent unique entries.
 _update_save_list() {
   local new_file="$1" list="$2"
