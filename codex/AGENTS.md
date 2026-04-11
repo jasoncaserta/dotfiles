@@ -11,24 +11,57 @@ Always exclude noise directories from any search or grep:
 
 Pattern: `rg --glob '!node_modules/**' --glob '!dist/**' --glob '!__pycache__/**' --glob '!.venv/**'`
 
-Use `rg -l` to identify relevant files before reading content. Limit output with `-m 20` when looking for a first occurrence.
+List relevant files before reading contents (e.g. `rg -l`).
+Limit output with `-m 20` when locating definitions.
+
+## Minimal Context First
+
+- Identify the smallest set of relevant files
+- Read only what is necessary
+- Avoid loading unrelated files
 
 ## Large File Reads
 
-For config files over ~20KB, never read the full file unless the task requires understanding the whole thing. Identify the relevant line range first with `rg -n`, then read only that section.
+For files over ~20KB:
+- Do not read full contents unless required
+- Locate relevant lines with `rg -n`
+- Read only the needed section
 
 ## Iterative Edits
 
-Batch all planned changes to a file into a single pass. Do not read → edit → re-read → edit again on the same file. If verification is needed after an edit, check only the changed section.
+- Batch all changes into a single pass
+- Do not read → edit → re-read → edit repeatedly
+- If verifying, read only the modified section
+
+## Change Scope
+
+- Make the smallest possible change
+- Do not refactor unrelated code
+
+## Code Style
+
+- Match existing naming, formatting, and structure
+- Do not introduce new styles unnecessarily
+
+## Verification
+
+- Do not assume behavior
+- Search for usages and definitions before editing
 
 ## Build / Lint Gates
 
-Do not run full builds or linters after every code change. Gate them to natural checkpoints: before a commit, when explicitly asked, or when debugging a build error.
+Run builds or linters only:
+- Before commit
+- When explicitly requested
+- When debugging errors
 
 ## Shell Syntax Checks
 
-`zsh -n <file>` is sufficient to check shell syntax — do not source the file to validate it.
+Use `zsh -n <file>` to validate syntax.
+Do not source files.
 
 ## Long Sessions
 
-When a task has accumulated a large amount of context and the remaining work is only PR creation, status checks, or small follow-up fixes, start a fresh session with a concise state summary instead of continuing the large context.
+When context becomes large and only small tasks remain:
+- Start a new session
+- Provide a concise state summary
