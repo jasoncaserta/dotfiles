@@ -117,8 +117,13 @@
     # example               # example user-defined segment (see prompt_example function below)
   )
 
-  # Defines character set used by powerlevel10k. It's best to let `p10k configure` set it for you.
-  typeset -g POWERLEVEL9K_MODE=nerdfont-v3
+  # Use Nerd Font icons by default. Set DOTFILES_USE_NERD_FONT=0 in terminals that
+  # don't have a Nerd Font configured.
+  if [[ ${DOTFILES_USE_NERD_FONT:-1} == 1 ]]; then
+    typeset -g POWERLEVEL9K_MODE=nerdfont-v3
+  else
+    typeset -g POWERLEVEL9K_MODE=ascii
+  fi
   # When set to `moderate`, some icons will have an extra space after them. This is meant to avoid
   # icon overlap when using non-monospace fonts. When set to `none`, spaces are not added.
   typeset -g POWERLEVEL9K_ICON_PADDING=none

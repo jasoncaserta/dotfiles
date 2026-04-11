@@ -236,9 +236,13 @@ setopt HIST_IGNORE_ALL_DUPS HIST_IGNORE_SPACE SHARE_HISTORY
 [[ -f /opt/homebrew/opt/fzf/shell/key-bindings.zsh ]] && \
   source /opt/homebrew/opt/fzf/shell/key-bindings.zsh
 
-# eza as ls with icons
+# eza as ls with icons by default. Set DOTFILES_USE_NERD_FONT=0 to disable.
 if command -v eza >/dev/null 2>&1; then
-  alias ls='eza --icons'
+  if [[ ${DOTFILES_USE_NERD_FONT:-1} == 1 ]]; then
+    alias ls='eza --icons'
+  else
+    alias ls='eza'
+  fi
 fi
 
 # Autosuggestions from history (requires: brew install zsh-autosuggestions)
@@ -285,6 +289,17 @@ if command -v tmux >/dev/null 2>&1; then
       fi
       ;;
   esac
+fi
+
+# Ensure tmux autosave loop is running (fallback if client-attached/session-created hook was missed).
+if [[ -n "$TMUX" ]]; then
+  _loop_pid_file="/tmp/tmux-autosave-loop.pid"
+  if ! { [[ -f "$_loop_pid_file" ]] && kill -0 "$(cat "$_loop_pid_file")" 2>/dev/null; }; then
+    _dotfiles_dir=$(cat "$HOME/.config/dotfiles/path" 2>/dev/null)
+    [[ -n "$_dotfiles_dir" && -x "$_dotfiles_dir/scripts/tmux-autosave-loop.sh" ]] && \
+      bash "$_dotfiles_dir/scripts/tmux-autosave-loop.sh" &>/dev/null &|
+  fi
+  unset _loop_pid_file _dotfiles_dir
 fi
 
 # zoxide as cd. Keep this at the end of the shell configuration.
