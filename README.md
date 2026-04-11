@@ -60,6 +60,7 @@ The `codex` shell wrapper automatically passes `-c features.codex_hooks=true`. T
 
 tmux-resurrect is configured to relaunch `claude` and `codex` panes after restore.
 Snapshots are trimmed to the `main` session after each save so old side sessions do not bloat restore time.
+Pane contents are captured on save, so restore shows prior terminal output above a banner before starting a fresh `claude` or `codex` process.
 
 **tmux diagnostics**
 Run `bash scripts/tmux-check.sh` to diagnose common issues in one pass — checks the tmux server, resurrect plugin, last save age, global hooks, shell script syntax, and the p10k symlink. Use this instead of manually running `tmux show-hooks`, `zsh -n`, and resurrection file inspections separately.

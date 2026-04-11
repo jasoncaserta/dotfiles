@@ -46,8 +46,29 @@ _terminal_alert_precmd() {
 
 _tmux_rename_preexec() {
   if [[ -n "${TMUX_PANE:-}" ]] && command -v tmux >/dev/null 2>&1; then
-    local cmd="${1%% *}"
-    tmux rename-window -t "${TMUX_PANE}" "${cmd:t}" 2>/dev/null
+    local full_cmd="$1"
+    local current_name cmd new_name
+
+    current_name=$(tmux display-message -p -t "${TMUX_PANE}" '#{window_name}' 2>/dev/null || printf '')
+    cmd="${full_cmd%% *}"
+    new_name="${cmd:t}"
+
+    if [[ "$full_cmd" == *"tmux-restore-agent-session.sh"* ]]; then
+      if [[ "$full_cmd" == *"tmux-restore-agent-session.sh\" codex "* || "$full_cmd" == *"tmux-restore-agent-session.sh codex "* ]]; then
+        new_name='codex'
+      elif [[ "$full_cmd" == *"tmux-restore-agent-session.sh\" claude"* || "$full_cmd" == *"tmux-restore-agent-session.sh claude"* ]]; then
+        new_name='claude'
+      fi
+
+      case "$current_name" in
+        ''|zsh|bash)
+          tmux rename-window -t "${TMUX_PANE}" "$new_name" 2>/dev/null
+          ;;
+      esac
+      return
+    fi
+
+    tmux rename-window -t "${TMUX_PANE}" "$new_name" 2>/dev/null
   fi
 }
 
@@ -57,6 +78,19 @@ _tmux_rename_precmd() {
   fi
 }
 
+_tmux_should_preserve_custom_name() {
+  local current_name=''
+  [[ -n "${TMUX_PANE:-}" ]] && command -v tmux >/dev/null 2>&1 || return 1
+  [[ -n "${TMUX_RESTORE_KEEP_NAME:-}" ]] || return 1
+  current_name=$(tmux display-message -p -t "${TMUX_PANE}" '#{window_name}' 2>/dev/null || printf '')
+  case "$current_name" in
+    ''|zsh|bash)
+      return 1
+      ;;
+  esac
+  return 0
+}
+
 add-zsh-hook preexec _terminal_alert_preexec
 add-zsh-hook preexec _tmux_rename_preexec
 add-zsh-hook precmd _terminal_alert_precmd
@@ -64,7 +98,7 @@ add-zsh-hook precmd _tmux_rename_precmd
 
 claude() {
   local pane="$TMUX_PANE"
-  if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1; then
+  if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1 && ! _tmux_should_preserve_custom_name; then
     tmux rename-window -t "$pane" "claude" 2>/dev/null
   fi
   command claude "$@"
@@ -72,7 +106,7 @@ claude() {
 
 codex() {
   local pane="$TMUX_PANE"
-  if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1; then
+  if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1 && ! _tmux_should_preserve_custom_name; then
     tmux rename-window -t "$pane" "codex" 2>/dev/null
   fi
   command codex -c features.codex_hooks=true "$@"
