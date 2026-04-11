@@ -6,11 +6,20 @@ restore_dir="$HOME/.tmux/resurrect"
 plugin_restore="$HOME/.tmux/plugins/tmux-resurrect/scripts/restore.sh"
 tmp_restore_dir=''
 original_resurrect_dir=''
+bootstrapped_session=''
 
 if [[ -z "${TMUX:-}" ]]; then
-  socket_path="$(tmux display-message -p -F "#{socket_path}" 2>/dev/null || printf '')"
-  if [[ -n "$socket_path" ]]; then
-    export TMUX="${socket_path},0,0"
+  # Build a valid TMUX env using any available session so tmux set-option works.
+  _any_sess="$(tmux list-sessions -F '#{session_name}' 2>/dev/null | head -1 || true)"
+  if [[ -z "$_any_sess" ]]; then
+    bootstrapped_session="_restore_bootstrap_$$"
+    tmux new-session -d -s "$bootstrapped_session"
+    _any_sess="$bootstrapped_session"
+  fi
+  if [[ -n "$_any_sess" ]]; then
+    _sock="$(tmux display-message -t "$_any_sess" -p -F "#{socket_path}" 2>/dev/null || printf '')"
+    _sid="$(tmux display-message -t "$_any_sess" -p -F "#{session_id}" 2>/dev/null | tr -d '$')"
+    [[ -n "$_sock" ]] && export TMUX="${_sock},0,${_sid:-0}"
   fi
 fi
 
@@ -25,6 +34,10 @@ cleanup() {
 
   if [[ -n "$tmp_restore_dir" && -d "$tmp_restore_dir" ]]; then
     rm -rf "$tmp_restore_dir"
+  fi
+
+  if [[ -n "$bootstrapped_session" ]]; then
+    tmux kill-session -t "$bootstrapped_session" >/dev/null 2>&1 || true
   fi
 
   exit "$status"
@@ -54,4 +67,12 @@ if [[ -f "$restore_file" ]]; then
   tmux set-option -gq @resurrect-dir "$tmp_restore_dir"
 fi
 
-"$plugin_restore" "$@"
+"$plugin_restore" "$@" \
+  2> >(
+    while IFS= read -r line; do
+      if [[ "$line" == "no current client" || "$line" == "can't find session: 0" ]]; then
+        continue
+      fi
+      printf '%s\n' "$line" >&2
+    done
+  )

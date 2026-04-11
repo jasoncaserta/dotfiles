@@ -79,6 +79,7 @@ codex() {
 }
 
 _prompt_tmux_restore_picker() {
+  setopt local_options no_monitor
   local resurrect_dir="$HOME/.tmux/resurrect"
 
   # Bail early if another terminal already started the session
@@ -99,12 +100,16 @@ _prompt_tmux_restore_picker() {
       entries+=("manual  $(_file_age_str "$resurrect_dir/$line")"$'\t'"$line")
   done < <(cat "$resurrect_dir/last-manual-list" 2>/dev/null)
 
-  # Fallback to 'last' symlink if no lists
-  if (( ${#entries[@]} == 0 )); then
-    local resolved
-    resolved="$(readlink "$resurrect_dir/last" 2>/dev/null || printf '')"
-    [[ -n "$resolved" && -f "$resurrect_dir/$resolved" ]] && \
-      entries+=("auto  $(_file_age_str "$resurrect_dir/$resolved")"$'\t'"$resolved")
+  # Always include the most recent save (last symlink) at the top if not already listed.
+  # Handles the race where kill-server happened before _update_save_list could write the entry.
+  local _last_target
+  _last_target="$(readlink "$resurrect_dir/last" 2>/dev/null || printf '')"
+  if [[ -n "$_last_target" && -f "$resurrect_dir/$_last_target" ]]; then
+    local _already_in=0 _e
+    for _e in "${entries[@]}"; do
+      [[ "${_e##*$'\t'}" == "$_last_target" ]] && { _already_in=1; break; }
+    done
+    (( _already_in )) || entries=("latest  $(_file_age_str "$resurrect_dir/$_last_target")"$'\t'"$_last_target" "${entries[@]}")
   fi
 
   (( ${#entries[@]} == 0 )) && return 1
@@ -144,6 +149,32 @@ _prompt_tmux_restore_picker() {
 
   TMUX_RESTORE_FILE="$resurrect_dir/$file"
   return 0
+}
+
+_run_with_spinner() {
+  local message="$1"
+  shift
+
+  local spinner_pid=''
+  (
+    local frames=('⣾' '⣽' '⣻' '⢿' '⡿' '⣟' '⣯' '⣷')
+    local i=0
+    while true; do
+      printf '\r%s  %s' "${frames[i]}" "$message"
+      i=$(( (i + 1) % ${#frames[@]} ))
+      sleep 0.1
+    done
+  ) &
+  spinner_pid=$!
+
+  "$@"
+  local cmd_status=$?
+
+  kill "$spinner_pid" 2>/dev/null || true
+  wait "$spinner_pid" 2>/dev/null || true
+  printf '\r%*s\r' "$(( ${#message} + 3 ))" ''
+
+  return "$cmd_status"
 }
 
 jason() {
@@ -267,13 +298,13 @@ if command -v tmux >/dev/null 2>&1; then
             should_restore=1
           fi
 
-          if tmux new-session -d -s main 2>/dev/null; then
-            _DOTFILES_DIR="$(cat ~/.config/dotfiles/path 2>/dev/null)"
-            if (( should_restore )) && [ -x "$_DOTFILES_DIR/scripts/tmux-restore.sh" ] && [ -n "$TMUX_RESTORE_FILE" ]; then
-              tmux attach-session -t main \; run-shell "$_DOTFILES_DIR/scripts/tmux-restore.sh '$TMUX_RESTORE_FILE'"
-              return
-            fi
-          else
+          local _DOTFILES_DIR
+          _DOTFILES_DIR="$(cat ~/.config/dotfiles/path 2>/dev/null)"
+          if (( should_restore )) && [ -x "$_DOTFILES_DIR/scripts/tmux-restore.sh" ] && [ -n "$TMUX_RESTORE_FILE" ]; then
+            _run_with_spinner "Restoring tmux snapshot..." \
+              zsh -c '"$1" "$2" >/dev/null' _ "$_DOTFILES_DIR/scripts/tmux-restore.sh" "$TMUX_RESTORE_FILE"
+            tmux has-session -t main 2>/dev/null || tmux new-session -d -s main 2>/dev/null
+          elif ! tmux new-session -d -s main 2>/dev/null; then
             local _tmux_wait=0
             while ! tmux has-session -t main 2>/dev/null; do
               (( _tmux_wait++ ))
@@ -284,7 +315,7 @@ if command -v tmux >/dev/null 2>&1; then
             done
           fi
         fi
-        tmux attach-session -t main 2>/dev/null || tmux attach-session 2>/dev/null
+        exec tmux new-session -A -s main
         return
       fi
       ;;
