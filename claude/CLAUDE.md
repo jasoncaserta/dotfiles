@@ -1,4 +1,10 @@
-# Global Codex Rules
+# Global Claude Code Rules
+
+## Effort Calibration
+
+- Trivial → fast, minimal reads
+- Mechanical → follow patterns
+- Complex → verify, explore, reason carefully
 
 ## Search Hygiene
 

@@ -1,5 +1,11 @@
 # Global Codex Rules
 
+## Effort Calibration
+
+- Trivial → fast, minimal reads
+- Mechanical → follow patterns
+- Complex → verify, explore, reason carefully
+
 ## Search Hygiene
 
 Always exclude noise directories from any search or grep:
