@@ -158,10 +158,10 @@ _run_with_spinner() {
   local spinner_pid=''
   (
     local frames=('⣾' '⣽' '⣻' '⢿' '⡿' '⣟' '⣯' '⣷')
-    local i=0
+    local i=1
     while true; do
       printf '\r%s  %s' "${frames[i]}" "$message"
-      i=$(( (i + 1) % ${#frames[@]} ))
+      i=$(( (i % ${#frames[@]}) + 1 ))
       sleep 0.1
     done
   ) &
@@ -173,6 +173,10 @@ _run_with_spinner() {
   kill "$spinner_pid" 2>/dev/null || true
   wait "$spinner_pid" 2>/dev/null || true
   printf '\r%*s\r' "$(( ${#message} + 3 ))" ''
+
+  if (( cmd_status != 0 )); then
+    printf 'error: %s failed (exit %d)\n' "$message" "$cmd_status" >&2
+  fi
 
   return "$cmd_status"
 }
