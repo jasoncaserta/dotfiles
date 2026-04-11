@@ -8,6 +8,9 @@ tmp_restore_dir=''
 original_resurrect_dir=''
 bootstrapped_session=''
 
+# shellcheck source=_tmux-save-common.sh
+source "$(dirname "$0")/_tmux-save-common.sh"
+
 if [[ -z "${TMUX:-}" ]]; then
   # Build a valid TMUX env using any available session so tmux set-option works.
   _any_sess="$(tmux list-sessions -F '#{session_name}' 2>/dev/null | head -1 || true)"
@@ -67,7 +70,7 @@ if [[ -f "$restore_file" ]]; then
   tmux set-option -gq @resurrect-dir "$tmp_restore_dir"
 fi
 
-"$plugin_restore" "$@" \
+_run_tmux_script_quiet "$plugin_restore" "$@" \
   2> >(
     while IFS= read -r line; do
       if [[ "$line" == "no current client" || "$line" == "can't find session: 0" ]]; then
@@ -76,3 +79,6 @@ fi
       printf '%s\n' "$line" >&2
     done
   )
+
+tmux set -g @save-flash "✓ tmux snapshot restored" 2>/dev/null || true
+( sleep 5; tmux set -g @save-flash "" 2>/dev/null ) & disown

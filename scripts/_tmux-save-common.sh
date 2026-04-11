@@ -1,10 +1,11 @@
 #!/bin/bash
 # Shared helpers sourced by tmux-autosave.sh, tmux-manualsave.sh, and tmux-save-status.sh.
 
-# Run tmux-resurrect's save.sh with a shim that suppresses status-bar output.
-# The shim intercepts `tmux display-message` calls without -p and silently drops them.
-_run_save() {
-  local save_script="$1"
+# Run a tmux plugin script with a shim that suppresses non-`-p` display-message
+# banners so status feedback can be shown in the tmux status line instead.
+_run_tmux_script_quiet() {
+  local script="$1"
+  shift
   local _tmpdir real_tmux
   _tmpdir=$(mktemp -d)
   real_tmux=$(command -v tmux)
@@ -19,8 +20,12 @@ done
 SHIM
   printf 'exec %s "$@"\n' "$real_tmux" >> "$_tmpdir/tmux"
   chmod +x "$_tmpdir/tmux"
-  PATH="$_tmpdir:$PATH" "$save_script"
+  PATH="$_tmpdir:$PATH" "$script" "$@"
   rm -rf "$_tmpdir"
+}
+
+_run_save() {
+  _run_tmux_script_quiet "$1"
 }
 
 # Rewrite a resurrect snapshot in place so it only contains the persistent
