@@ -365,8 +365,11 @@ if [[ -n "$TMUX" ]]; then
   _loop_pid_file="/tmp/tmux-autosave-loop.pid"
   if ! { [[ -f "$_loop_pid_file" ]] && kill -0 "$(cat "$_loop_pid_file")" 2>/dev/null; }; then
     _dotfiles_dir=$(cat "$HOME/.config/dotfiles/path" 2>/dev/null)
+    # Double-fork so the loop is re-parented to launchd, not the current shell.
+    # If it stayed a child here, pgrep -P <pane_pid> would find it alongside
+    # codex/claude and save the wrong command in the resurrect file.
     [[ -n "$_dotfiles_dir" && -x "$_dotfiles_dir/scripts/tmux-autosave-loop.sh" ]] && \
-      bash "$_dotfiles_dir/scripts/tmux-autosave-loop.sh" &>/dev/null &|
+      (bash "$_dotfiles_dir/scripts/tmux-autosave-loop.sh" &>/dev/null &)
   fi
   unset _loop_pid_file _dotfiles_dir
 fi

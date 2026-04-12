@@ -29,12 +29,11 @@ case "$agent_bin" in
       (( _waited >= 100 )) && break   # 10 s max
     done
     unset _sess _waited
-    exec /opt/homebrew/bin/codex -c features.codex_hooks=true
+    exec codex -c features.codex_hooks=true
     ;;
   claude)
     export TMUX_RESTORE_KEEP_NAME=1
-    export POWERLEVEL9K_INSTANT_PROMPT=off
-    exec zsh -ic 'claude'
+    exec claude
     ;;
 esac
 
