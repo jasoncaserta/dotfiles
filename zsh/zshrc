@@ -353,7 +353,7 @@ if command -v tmux >/dev/null 2>&1; then
             done
           fi
         fi
-        exec tmux new-session -A -s main
+        tmux new-session -A -s main && exit 0
         return
       fi
       ;;

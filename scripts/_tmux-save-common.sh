@@ -21,7 +21,12 @@ SHIM
   printf 'exec %s "$@"\n' "$real_tmux" >> "$_tmpdir/tmux"
   chmod +x "$_tmpdir/tmux"
   PATH="$_tmpdir:$PATH" "$script" "$@"
-  rm -rf "$_tmpdir"
+  local _status=$?
+  # Defer cleanup so background processes spawned by the plugin (e.g.
+  # tmux_spinner.sh) can finish using the shim before it is removed.
+  ( sleep 5; rm -rf "$_tmpdir" ) &
+  disown
+  return "$_status"
 }
 
 _run_save() {

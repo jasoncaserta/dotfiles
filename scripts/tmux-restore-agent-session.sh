@@ -33,6 +33,14 @@ case "$agent_bin" in
     ;;
   claude)
     export TMUX_RESTORE_KEEP_NAME=1
+    _sess=$(tmux display-message -p '#{session_name}' 2>/dev/null || printf 'main')
+    _waited=0
+    until tmux list-clients -t "$_sess" 2>/dev/null | grep -q .; do
+      sleep 0.1
+      _waited=$(( _waited + 1 ))
+      (( _waited >= 100 )) && break   # 10 s max
+    done
+    unset _sess _waited
     exec claude
     ;;
 esac
