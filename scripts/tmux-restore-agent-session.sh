@@ -18,11 +18,23 @@ agent_bin="$(basename "$1")"
 case "$agent_bin" in
   codex|codex-aarch64-a)
     export TMUX_RESTORE_KEEP_NAME=1
-    exec zsh -ic 'printf "\033[0m\033[39m\033[49m"; exec codex'
+    # Wait for a client to attach so Ghostty can answer terminal capability
+    # queries (e.g. background-color detection). Without a client, codex
+    # gets no response and renders the input area without a background.
+    _sess=$(tmux display-message -p '#{session_name}' 2>/dev/null || printf 'main')
+    _waited=0
+    until tmux list-clients -t "$_sess" 2>/dev/null | grep -q .; do
+      sleep 0.1
+      _waited=$(( _waited + 1 ))
+      (( _waited >= 100 )) && break   # 10 s max
+    done
+    unset _sess _waited
+    exec /opt/homebrew/bin/codex -c features.codex_hooks=true
     ;;
   claude)
     export TMUX_RESTORE_KEEP_NAME=1
-    exec zsh -ic 'printf "\033[0m\033[39m\033[49m"; exec claude'
+    export POWERLEVEL9K_INSTANT_PROMPT=off
+    exec zsh -ic 'claude'
     ;;
 esac
 
