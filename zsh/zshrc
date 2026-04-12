@@ -54,25 +54,30 @@ _tmux_rename_preexec() {
   if [[ -n "${TMUX_PANE:-}" ]] && command -v tmux >/dev/null 2>&1; then
     local full_cmd="$1"
     local current_name cmd new_name
+    local stripped_cmd="$full_cmd"
+    local prefix_token=''
+    local preserve_restore_name=0
 
     current_name=$(tmux display-message -p -t "${TMUX_PANE}" '#{window_name}' 2>/dev/null || printf '')
-    cmd="${full_cmd%% *}"
-    new_name="${cmd:t}"
 
-    if [[ "$full_cmd" == *"tmux-restore-agent-session.sh"* ]]; then
-      if [[ "$full_cmd" == *"tmux-restore-agent-session.sh\" codex "* || "$full_cmd" == *"tmux-restore-agent-session.sh codex "* ]]; then
-        new_name='codex'
-      elif [[ "$full_cmd" == *"tmux-restore-agent-session.sh\" claude"* || "$full_cmd" == *"tmux-restore-agent-session.sh claude"* ]]; then
-        new_name='claude'
-      fi
+    while [[ "$stripped_cmd" == [A-Za-z_][A-Za-z0-9_]*=* ]]; do
+      prefix_token="${stripped_cmd%% *}"
+      [[ "$prefix_token" == TMUX_RESTORE_KEEP_NAME=* ]] && preserve_restore_name=1
+      [[ "$prefix_token" == DOTFILES_RESTORE=* ]] && preserve_restore_name=1
+      [[ "$stripped_cmd" == *" "* ]] || break
+      stripped_cmd="${stripped_cmd#* }"
+    done
 
+    if (( preserve_restore_name )); then
       case "$current_name" in
-        ''|zsh|bash)
-          tmux rename-window -t "${TMUX_PANE}" "$new_name" 2>/dev/null
-          ;;
+        ''|zsh|bash) ;;
+        *) return ;;
       esac
-      return
     fi
+
+    cmd="${stripped_cmd%% *}"
+    new_name="${cmd:t}"
+    [[ -n "$new_name" ]] || return
 
     tmux rename-window -t "${TMUX_PANE}" "$new_name" 2>/dev/null
   fi
@@ -87,7 +92,7 @@ _tmux_rename_precmd() {
 _tmux_should_preserve_custom_name() {
   local current_name=''
   [[ -n "${TMUX_PANE:-}" ]] && command -v tmux >/dev/null 2>&1 || return 1
-  [[ -n "${TMUX_RESTORE_KEEP_NAME:-}" ]] || return 1
+  [[ -n "${TMUX_RESTORE_KEEP_NAME:-}${DOTFILES_RESTORE:-}" ]] || return 1
   current_name=$(tmux display-message -p -t "${TMUX_PANE}" '#{window_name}' 2>/dev/null || printf '')
   case "$current_name" in
     ''|zsh|bash)
@@ -97,6 +102,51 @@ _tmux_should_preserve_custom_name() {
   return 0
 }
 
+_tmux_restore_banner() {
+  printf '\033[38;5;34m%s\033[0m\n' '──────────────── Restored pane output above; new session starts below ────────────────'
+}
+
+_tmux_restore_debug_log() {
+  {
+    printf '%s\tpane=%s\tpwd=%s\t%s\n' \
+      "$(date '+%Y-%m-%d %H:%M:%S')" \
+      "${TMUX_PANE:-}" \
+      "$PWD" \
+      "$*"
+  } >> /tmp/tmux-restore-debug.log 2>/dev/null || true
+}
+
+_tmux_prepare_restore_agent_launch() {
+  local wait_for_client="${1:-0}"
+  local print_banner_only="${2:-0}"
+  local _sess=''
+  local _waited=0
+
+  [[ -n "${TMUX_RESTORE_KEEP_NAME:-}" ]] || return 0
+
+  if (( print_banner_only )); then
+    printf '\n'
+    _tmux_restore_banner
+    printf '\n'
+  else
+    printf '\n'
+    # Clear only the visible viewport so restored output remains available in
+    # tmux history while the fresh agent session starts beneath a restore banner.
+    printf '\033[0m\033[39m\033[49m\033[2J\033[H'
+    _tmux_restore_banner
+    printf '\n'
+  fi
+
+  if (( wait_for_client )) && [[ -n "${TMUX_PANE:-}" ]] && command -v tmux >/dev/null 2>&1; then
+    _sess=$(tmux display-message -p '#{session_name}' 2>/dev/null || printf 'main')
+    until tmux list-clients -t "$_sess" 2>/dev/null | grep -q .; do
+      sleep 0.1
+      _waited=$(( _waited + 1 ))
+      (( _waited >= 100 )) && break
+    done
+  fi
+}
+
 add-zsh-hook preexec _terminal_alert_preexec
 add-zsh-hook preexec _tmux_rename_preexec
 add-zsh-hook precmd _terminal_alert_precmd
@@ -104,8 +154,16 @@ add-zsh-hook precmd _tmux_rename_precmd
 
 claude() {
   local pane="$TMUX_PANE"
+  local _dotfiles=''
   if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1 && ! _tmux_should_preserve_custom_name; then
     tmux rename-window -t "$pane" "claude" 2>/dev/null
+  fi
+  if [[ -n "${DOTFILES_RESTORE:-}" ]]; then
+    _dotfiles="$(cat ~/.config/dotfiles/path 2>/dev/null)"
+    if [[ -n "$_dotfiles" ]] && command -v python3 >/dev/null 2>&1; then
+      command python3 "$_dotfiles/scripts/claude-preserve-scrollback.py" "$@"
+      return
+    fi
   fi
   command claude "$@"
 }
@@ -115,6 +173,7 @@ codex() {
   if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1 && ! _tmux_should_preserve_custom_name; then
     tmux rename-window -t "$pane" "codex" 2>/dev/null
   fi
+  _tmux_prepare_restore_agent_launch 1
   command codex -c features.codex_hooks=true "$@"
 }
 
@@ -340,6 +399,7 @@ if command -v tmux >/dev/null 2>&1; then
   case $- in
     *i*)
       if [ -z "$TMUX" ] && [ "${TERM_PROGRAM:-}" = "ghostty" ] && [ -z "${NO_AUTO_TMUX:-}" ]; then
+        local _TMUX_DEFAULT_DIR="$HOME/Projects"
         if ! tmux list-sessions >/dev/null 2>&1; then
           local TMUX_RESTORE_FILE=''
           local should_restore=0
@@ -358,9 +418,9 @@ if command -v tmux >/dev/null 2>&1; then
             # Use SIGKILL to bypass the spinner's SIGTERM trap, which would
             # otherwise call `tmux display-message` without a terminal.
             pkill -9 -f "tmux_spinner" 2>/dev/null || true
-            tmux has-session -t main 2>/dev/null || tmux new-session -d -s main 2>/dev/null
+            tmux has-session -t main 2>/dev/null || tmux new-session -d -c "$_TMUX_DEFAULT_DIR" -s main 2>/dev/null
             sleep 0.5  # give the restored session a moment before attaching
-          elif ! tmux new-session -d -s main 2>/dev/null; then
+          elif ! tmux new-session -d -c "$_TMUX_DEFAULT_DIR" -s main 2>/dev/null; then
             local _tmux_wait=0
             while ! tmux has-session -t main 2>/dev/null; do
               (( _tmux_wait++ ))
@@ -376,7 +436,7 @@ if command -v tmux >/dev/null 2>&1; then
         if tmux has-session -t main 2>/dev/null; then
           tmux attach-session -t main 2>/dev/null && exit 0
         else
-          tmux new-session -s main 2>/dev/null && exit 0
+          tmux new-session -c "$_TMUX_DEFAULT_DIR" -s main 2>/dev/null && exit 0
         fi
         return
       fi

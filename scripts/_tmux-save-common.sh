@@ -35,6 +35,18 @@ _patch_alt_screen_pane_contents_archive() {
   command -v tmux >/dev/null 2>&1 || return 0
   local restore_banner=$'\033[38;5;34m──────────────── Restored pane output above; new session starts below ────────────────\033[0m'
 
+  _sanitize_restore_dump() {
+    perl -ne 'print unless /tmux-restore-agent-session\.sh(?:["[:space:]]+)(?:codex|claude)\b|TMUX_RESTORE_KEEP_NAME=1[[:space:]]+(?:codex|claude)\b/'
+  }
+
+  _normalize_restore_dump() {
+    RESTORE_BANNER="$restore_banner" perl -0pe '
+      my $banner = $ENV{RESTORE_BANNER};
+      s/\Q$banner\E\s*//gs;
+      s/\s*\z//s;
+    '
+  }
+
   local tmpdir
   tmpdir=$(mktemp -d) || return 0
 
@@ -56,14 +68,15 @@ _patch_alt_screen_pane_contents_archive() {
         if [[ -z "$pane_dump" && -f "$pane_file" ]]; then
           pane_dump="$(cat "$pane_file" 2>/dev/null || printf '')"
         fi
+        pane_dump="$(printf '%s' "$pane_dump" | _sanitize_restore_dump | _normalize_restore_dump)"
         [[ -n "$pane_dump" ]] || continue
-        [[ "$pane_dump" == *"$restore_banner"* ]] && continue
         printf '%s\n\n%s\n' "$pane_dump" "$restore_banner" > "$pane_file"
         ;;
       codex|codex-aarch64-a)
         [[ -f "$pane_file" ]] || continue
         pane_dump="$(cat "$pane_file" 2>/dev/null || printf '')"
-        [[ "$pane_dump" == *"$restore_banner"* ]] && continue
+        pane_dump="$(printf '%s' "$pane_dump" | _sanitize_restore_dump | _normalize_restore_dump)"
+        [[ -n "$pane_dump" ]] || continue
         printf '%s\n\n%s\n' "$pane_dump" "$restore_banner" > "$pane_file"
         ;;
     esac

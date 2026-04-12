@@ -1,4 +1,5 @@
 command = /bin/zsh
+working-directory = /Users/jasoncaserta/Projects
 
 # Theming
 

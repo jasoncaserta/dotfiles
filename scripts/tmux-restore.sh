@@ -13,6 +13,19 @@ _was_running=0
 # shellcheck source=_tmux-save-common.sh
 source "$(dirname "$0")/_tmux-save-common.sh"
 
+_restore_debug_log() {
+  {
+    printf '%s\t%s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
+  } >> /tmp/tmux-restore-debug.log 2>/dev/null || true
+}
+
+_restore_agent_command() {
+  case "$1" in
+    codex)  printf '%s\n' 'DOTFILES_RESTORE=1 codex' ;;
+    claude) printf '%s\n' 'DOTFILES_RESTORE=1 claude' ;;
+  esac
+}
+
 if [[ -z "${TMUX:-}" ]]; then
   # Build a valid TMUX env using any available session so tmux set-option works.
   _any_sess="$(tmux list-sessions -F '#{session_name}' 2>/dev/null | head -1 || true)"
@@ -108,22 +121,35 @@ tmux set -g @save-flash "✓ tmux snapshot restored" 2>/dev/null || true
 # When the session was already running, resurrect marks existing panes as
 # "existing" and skips sending restore commands to them. Send them ourselves.
 if [[ "$_was_running" -eq 1 && -n "$tmp_file" && -f "$tmp_file" ]]; then
-  _dotfiles="$(cat ~/.config/dotfiles/path 2>/dev/null)"
   while IFS=$'\t' read -r _lt _sess _win _wa _wf _pi _pt _dir _pa _pcmd _pfull; do
     case "${_pfull#:}" in
       codex*)  _agent='codex'  ;;
       claude*) _agent='claude' ;;
       *)       continue ;;
     esac
-    # Wait up to 5 s for the pane to reach a shell, then send the restore command.
+    # Wait up to 5 s for the pane to reach a shell, then launch the restored
+    # agent through the user's normal shell wrapper.
     _waited=0
     while (( _waited < 50 )); do
       _pane_cmd="$(tmux display-message -p -t "${_sess}:${_win}.${_pi}" '#{pane_current_command}' 2>/dev/null || printf '')"
       case "$_pane_cmd" in
         zsh|bash|sh|'')
-          tmux send-keys -t "${_sess}:${_win}.${_pi}" \
-            "bash \"$_dotfiles/scripts/tmux-restore-agent-session.sh\" $_agent" Enter \
-            2>/dev/null || true
+          _restore_cmd="$(_restore_agent_command "$_agent")"
+          [[ -n "$_restore_cmd" ]] || break
+          if [[ "$_agent" == "claude" ]]; then
+            _pane_target="${_sess}:${_win}.${_pi}"
+            _restore_debug_log "claude-send target=${_pane_target} pane_cmd=${_pane_cmd} command=${_restore_cmd}"
+            tmux capture-pane -p -S -40 -E - -t "$_pane_target" > /tmp/tmux-restore-claude-before-send.txt 2>/dev/null || true
+          fi
+          tmux send-keys -t "${_sess}:${_win}.${_pi}" "$_restore_cmd" Enter 2>/dev/null || true
+          if [[ "$_agent" == "claude" ]]; then
+            (
+              sleep 0.4
+              tmux capture-pane -p -S -40 -E - -t "$_pane_target" > /tmp/tmux-restore-claude-after-send.txt 2>/dev/null || true
+              _restore_debug_log "claude-after-send target=${_pane_target} pane_cmd=$(tmux display-message -p -t "$_pane_target" '#{pane_current_command}' 2>/dev/null || printf '')"
+            ) &
+            disown
+          fi
           break
           ;;
         codex*|claude*)
@@ -134,5 +160,5 @@ if [[ "$_was_running" -eq 1 && -n "$tmp_file" && -f "$tmp_file" ]]; then
       _waited=$(( _waited + 1 ))
     done
   done < <(grep $'^pane\t' "$tmp_file")
-  unset _lt _sess _win _wa _wf _pi _pt _dir _pa _pcmd _pfull _agent _pane_cmd _dotfiles _waited
+  unset _lt _sess _win _wa _wf _pi _pt _dir _pa _pcmd _pfull _agent _pane_cmd _restore_cmd _pane_target _waited
 fi
