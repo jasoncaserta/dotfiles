@@ -29,8 +29,62 @@ SHIM
   return "$_status"
 }
 
+_patch_alt_screen_pane_contents_archive() {
+  local archive="$HOME/.tmux/resurrect/pane_contents.tar.gz"
+  [[ -f "$archive" ]] || return 0
+  command -v tmux >/dev/null 2>&1 || return 0
+  local restore_banner=$'\033[38;5;34m──────────────── Restored pane output above; new session starts below ────────────────\033[0m'
+
+  local tmpdir
+  tmpdir=$(mktemp -d) || return 0
+
+  if ! tar -xzf "$archive" -C "$tmpdir" 2>/dev/null; then
+    rm -rf "$tmpdir"
+    return 0
+  fi
+
+  local pane_id pane_cmd alt_on pane_file pane_dump
+  while IFS=$'\t' read -r pane_id pane_cmd alt_on; do
+    pane_file="$tmpdir/pane_contents/pane-${pane_id}"
+    case "$pane_cmd" in
+      claude)
+        mkdir -p "$(dirname "$pane_file")"
+        pane_dump=''
+        if [[ "$alt_on" == "1" ]]; then
+          pane_dump="$(tmux capture-pane -aepJ -t "$pane_id" 2>/dev/null || printf '')"
+        fi
+        if [[ -z "$pane_dump" && -f "$pane_file" ]]; then
+          pane_dump="$(cat "$pane_file" 2>/dev/null || printf '')"
+        fi
+        [[ -n "$pane_dump" ]] || continue
+        [[ "$pane_dump" == *"$restore_banner"* ]] && continue
+        printf '%s\n\n%s\n' "$pane_dump" "$restore_banner" > "$pane_file"
+        ;;
+      codex|codex-aarch64-a)
+        [[ -f "$pane_file" ]] || continue
+        pane_dump="$(cat "$pane_file" 2>/dev/null || printf '')"
+        [[ "$pane_dump" == *"$restore_banner"* ]] && continue
+        printf '%s\n\n%s\n' "$pane_dump" "$restore_banner" > "$pane_file"
+        ;;
+    esac
+  done < <(tmux list-panes -a -F '#{session_name}:#{window_index}.#{pane_index}'$'\t''#{pane_current_command}'$'\t''#{alternate_on}' 2>/dev/null)
+
+  (
+    cd "$tmpdir" &&
+    tar cf - ./pane_contents | gzip > "${archive}.tmp"
+  ) 2>/dev/null || {
+    rm -f "${archive}.tmp"
+    rm -rf "$tmpdir"
+    return 0
+  }
+
+  mv "${archive}.tmp" "$archive"
+  rm -rf "$tmpdir"
+}
+
 _run_save() {
   _run_tmux_script_quiet "$1"
+  _patch_alt_screen_pane_contents_archive
 }
 
 # Rewrite a resurrect snapshot in place so it only contains the persistent

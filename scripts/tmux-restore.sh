@@ -69,7 +69,7 @@ if [[ -f "$restore_file" ]]; then
   fi
 
   original_resurrect_dir="$(tmux show-option -gqv @resurrect-dir 2>/dev/null || printf '')"
-  tmux set-option -gq @resurrect-dir "$tmp_restore_dir"
+  tmux set-option -gq @resurrect-dir "$tmp_restore_dir" 2>/dev/null || true
 fi
 
 # Track whether the session was already running before restore.
@@ -95,7 +95,7 @@ fi
 _run_tmux_script_quiet "$plugin_restore" "$@" \
   2> >(
     while IFS= read -r line; do
-      if [[ "$line" == "no current client" || "$line" == "can't find session: 0" ]]; then
+      if [[ "$line" == "no current client" || "$line" == "can't find session: 0" || "$line" == *"open terminal failed"* ]]; then
         continue
       fi
       printf '%s\n' "$line" >&2

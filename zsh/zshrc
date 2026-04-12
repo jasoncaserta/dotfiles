@@ -1,3 +1,9 @@
+# Powerlevel10k instant prompt redirects stdio during startup. Disable it for
+# the first Ghostty shell so tmux restore/attach runs with a normal terminal.
+if [[ -z "${TMUX:-}" && "${TERM_PROGRAM:-}" = "ghostty" && -z "${NO_AUTO_TMUX:-}" ]]; then
+  typeset -g POWERLEVEL9K_INSTANT_PROMPT=off
+fi
+
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
@@ -189,12 +195,18 @@ _run_with_spinner() {
   local message="$1"
   shift
 
+  # Write directly to /dev/tty so output is visible even when p10k instant
+  # prompt has stdout redirected during zshrc initialisation.
+  local _tty
+  _tty=$(tty 2>/dev/null) || _tty=/dev/tty
+
+  setopt local_options no_monitor  # suppress job-control notifications for the spinner
   local spinner_pid=''
   (
     local frames=('⣾' '⣽' '⣻' '⢿' '⡿' '⣟' '⣯' '⣷')
     local i=1
     while true; do
-      printf '\r%s  %s' "${frames[i]}" "$message"
+      printf '\r%s  %s' "${frames[i]}" "$message" >> "$_tty" 2>/dev/null || break
       i=$(( (i % ${#frames[@]}) + 1 ))
       sleep 0.1
     done
@@ -206,7 +218,7 @@ _run_with_spinner() {
 
   kill "$spinner_pid" 2>/dev/null || true
   wait "$spinner_pid" 2>/dev/null || true
-  printf '\r%*s\r' "$(( ${#message} + 3 ))" ''
+  printf '\r%*s\r' "$(( ${#message} + 3 ))" '' >> "$_tty" 2>/dev/null || true
 
   if (( cmd_status != 0 )); then
     printf 'error: %s failed (exit %d)\n' "$message" "$cmd_status" >&2
@@ -340,8 +352,14 @@ if command -v tmux >/dev/null 2>&1; then
           _DOTFILES_DIR="$(cat ~/.config/dotfiles/path 2>/dev/null)"
           if (( should_restore )) && [ -x "$_DOTFILES_DIR/scripts/tmux-restore.sh" ] && [ -n "$TMUX_RESTORE_FILE" ]; then
             _run_with_spinner "Restoring tmux snapshot..." \
-              zsh -c '"$1" "$2" >/dev/null' _ "$_DOTFILES_DIR/scripts/tmux-restore.sh" "$TMUX_RESTORE_FILE"
+              zsh -c '"$1" "$2" </dev/null >/dev/null 2>&1' _ "$_DOTFILES_DIR/scripts/tmux-restore.sh" "$TMUX_RESTORE_FILE"
+            # Kill any resurrect spinner still running in the background so it
+            # doesn't interfere with the tmux attach that follows.
+            # Use SIGKILL to bypass the spinner's SIGTERM trap, which would
+            # otherwise call `tmux display-message` without a terminal.
+            pkill -9 -f "tmux_spinner" 2>/dev/null || true
             tmux has-session -t main 2>/dev/null || tmux new-session -d -s main 2>/dev/null
+            sleep 0.5  # give the restored session a moment before attaching
           elif ! tmux new-session -d -s main 2>/dev/null; then
             local _tmux_wait=0
             while ! tmux has-session -t main 2>/dev/null; do
@@ -353,7 +371,13 @@ if command -v tmux >/dev/null 2>&1; then
             done
           fi
         fi
-        tmux new-session -A -s main && exit 0
+        # Use an explicit attach path after restore so we don't depend on
+        # `new-session -A` behavior in the first Ghostty bootstrap shell.
+        if tmux has-session -t main 2>/dev/null; then
+          tmux attach-session -t main 2>/dev/null && exit 0
+        else
+          tmux new-session -s main 2>/dev/null && exit 0
+        fi
         return
       fi
       ;;
