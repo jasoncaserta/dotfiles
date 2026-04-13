@@ -40,7 +40,7 @@ case "$agent_bin" in
     # restored output remains available in scrollback while the new TUI starts on a
     # clean screen.
     printf '\033[0m\033[39m\033[49m\033[2J\033[H'
-    printf '\033[38;5;34m%s\033[0m\n' "$restore_banner"
+    printf '\033[0m\033[1;38;5;34m%s\033[0m\n' "$restore_banner"
     printf '\n'
     export TMUX_RESTORE_KEEP_NAME=1
     _wait_for_client
@@ -50,7 +50,7 @@ case "$agent_bin" in
     printf '\n'
     # Match the Codex restore presentation exactly.
     printf '\033[0m\033[39m\033[49m\033[2J\033[H'
-    printf '\033[38;5;34m%s\033[0m\n' "$restore_banner"
+    printf '\033[0m\033[1;38;5;34m%s\033[0m\n' "$restore_banner"
     printf '\n'
     export TMUX_RESTORE_KEEP_NAME=1
     _wait_for_client

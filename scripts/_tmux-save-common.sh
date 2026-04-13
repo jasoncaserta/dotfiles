@@ -83,7 +83,7 @@ _patch_alt_screen_pane_contents_archive() {
   local archive="$HOME/.tmux/resurrect/pane_contents.tar.gz"
   [[ -f "$archive" ]] || return 0
   command -v tmux >/dev/null 2>&1 || return 0
-  local restore_banner=$'\033[38;5;34m──────────────── Restored pane output above; new session starts below ────────────────\033[0m'
+  local restore_banner=$'\033[0m\033[1;38;5;34m──────────────── Restored pane output above; new session starts below ────────────────\033[0m'
 
   local tmpdir
   tmpdir=$(mktemp -d) || return 0
@@ -191,6 +191,65 @@ _update_save_list() {
   printf '%s\n' "$new_file" > "${list}.tmp"
   [[ -f "$list" ]] && grep -v "^${new_file}$" "$list" | head -2 >> "${list}.tmp" || true
   mv "${list}.tmp" "$list"
+}
+
+_prune_snapshot_sets() {
+  local resurrect_dir="$1"
+  local auto_list="$resurrect_dir/last-auto-list"
+  local manual_list="$resurrect_dir/last-manual-list"
+  local keep_tmp="${TMPDIR:-/tmp}/tmux-keep.$$"
+  local keep_txt_tmp="${TMPDIR:-/tmp}/tmux-keep-txt.$$"
+  local snapshot snapshot_archive
+
+  : > "$keep_tmp"
+
+  if [[ -f "$auto_list" ]]; then
+    head -3 "$auto_list" >> "$keep_tmp"
+  fi
+  if [[ -f "$manual_list" ]]; then
+    head -3 "$manual_list" >> "$keep_tmp"
+  fi
+
+  awk 'NF && !seen[$0]++' "$keep_tmp" > "$keep_txt_tmp"
+  mv "$keep_txt_tmp" "$keep_tmp"
+
+  while IFS= read -r snapshot; do
+    [[ -n "$snapshot" ]] || continue
+    [[ -f "$resurrect_dir/$snapshot" ]] || continue
+    printf '%s\n' "$snapshot"
+  done < "$keep_tmp" > "${keep_tmp}.existing"
+  mv "${keep_tmp}.existing" "$keep_tmp"
+
+  if [[ -f "$auto_list" ]]; then
+    grep -Fxf "$keep_tmp" "$auto_list" > "${auto_list}.tmp" || true
+    mv "${auto_list}.tmp" "$auto_list"
+  fi
+  if [[ -f "$manual_list" ]]; then
+    grep -Fxf "$keep_tmp" "$manual_list" > "${manual_list}.tmp" || true
+    mv "${manual_list}.tmp" "$manual_list"
+  fi
+
+  while IFS= read -r snapshot; do
+    [[ -n "$snapshot" ]] || continue
+    snapshot_archive="$(_snapshot_pane_archive_path "$resurrect_dir/$snapshot")"
+    printf '%s\n' "$snapshot_archive"
+  done < "$keep_tmp" > "${keep_tmp}.archives"
+
+  while IFS= read -r snapshot; do
+    [[ -n "$snapshot" ]] || continue
+    grep -Fxq "$snapshot" "$keep_tmp" && continue
+    rm -f "$resurrect_dir/$snapshot"
+    snapshot_archive="$(_snapshot_pane_archive_path "$resurrect_dir/$snapshot")"
+    [[ -n "$snapshot_archive" ]] && rm -f "$snapshot_archive"
+  done < <(find "$resurrect_dir" -maxdepth 1 -type f -name 'tmux_resurrect_*.txt' -print | sed 's#^.*/##' | sort)
+
+  while IFS= read -r snapshot_archive; do
+    [[ -n "$snapshot_archive" ]] || continue
+    grep -Fxq "$snapshot_archive" "${keep_tmp}.archives" && continue
+    rm -f "$snapshot_archive"
+  done < <(find "$resurrect_dir" -maxdepth 1 -type f -name 'tmux_resurrect_*.pane_contents.tar.gz' -print | sort)
+
+  rm -f "$keep_tmp" "${keep_tmp}.archives"
 }
 
 # Print human-readable age for a file given its absolute path.

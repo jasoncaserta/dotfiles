@@ -108,7 +108,7 @@ _tmux_should_preserve_custom_name() {
 }
 
 _tmux_restore_banner() {
-  printf '\033[38;5;34m%s\033[0m\n' '──────────────── Restored pane output above; new session starts below ────────────────'
+  printf '\033[0m\033[1;38;5;34m%s\033[0m\n' '──────────────── Restored pane output above; new session starts below ────────────────'
 }
 
 _tmux_restore_debug_log() {

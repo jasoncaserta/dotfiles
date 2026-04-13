@@ -57,19 +57,27 @@ def winsize_from_tmux_pane():
     return None
 
 
-def stable_tmux_winsize(max_wait_s: float = 1.5, settle_s: float = 0.20):
+def stable_tmux_winsize(
+    max_wait_s: float = 3.0,
+    settle_s: float = 0.35,
+    min_wait_s: float = 1.0,
+):
     deadline = time.monotonic() + max_wait_s
+    started_at = time.monotonic()
     last = None
-    last_change_at = time.monotonic()
+    last_change_at = started_at
     while time.monotonic() < deadline:
-      size = winsize_from_tmux_pane()
-      if size is not None:
-          if size != last:
-              last = size
-              last_change_at = time.monotonic()
-          elif (time.monotonic() - last_change_at) >= settle_s:
-              return size
-      time.sleep(0.05)
+        size = winsize_from_tmux_pane()
+        if size is not None:
+            if size != last:
+                last = size
+                last_change_at = time.monotonic()
+            elif (
+                (time.monotonic() - last_change_at) >= settle_s
+                and (time.monotonic() - started_at) >= min_wait_s
+            ):
+                return size
+        time.sleep(0.05)
     return last
 
 
