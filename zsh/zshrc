@@ -159,6 +159,9 @@ claude() {
     tmux rename-window -t "$pane" "claude" 2>/dev/null
   fi
   if [[ -n "${DOTFILES_RESTORE:-}" ]]; then
+    # Clear only the visible viewport so restored history remains in tmux
+    # scrollback while the relaunched Claude session starts in a clean pane.
+    printf '\033[0m\033[39m\033[49m\033[2J\033[H'
     _dotfiles="$(cat ~/.config/dotfiles/path 2>/dev/null)"
     if [[ -n "$_dotfiles" ]] && command -v python3 >/dev/null 2>&1; then
       command python3 "$_dotfiles/scripts/claude-preserve-scrollback.py" "$@"

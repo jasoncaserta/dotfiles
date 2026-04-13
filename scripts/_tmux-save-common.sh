@@ -36,13 +36,13 @@ _patch_alt_screen_pane_contents_archive() {
   local restore_banner=$'\033[38;5;34m──────────────── Restored pane output above; new session starts below ────────────────\033[0m'
 
   _sanitize_restore_dump() {
-    perl -ne 'print unless /tmux-restore-agent-session\.sh(?:["[:space:]]+)(?:codex|claude)\b|TMUX_RESTORE_KEEP_NAME=1[[:space:]]+(?:codex|claude)\b/'
+    perl -ne 'print unless /tmux-restore-agent-session\.sh(?:["[:space:]]+)(?:codex|claude)\b|TMUX_RESTORE_KEEP_NAME=1[[:space:]]+(?:codex|claude)\b|DOTFILES_RESTORE=1[[:space:]]+(?:codex|claude)\b/'
   }
 
   _normalize_restore_dump() {
-    RESTORE_BANNER="$restore_banner" perl -0pe '
-      my $banner = $ENV{RESTORE_BANNER};
-      s/\Q$banner\E\s*//gs;
+    RESTORE_BANNER_TEXT='Restored pane output above; new session starts below' perl -0pe '
+      my $banner = $ENV{RESTORE_BANNER_TEXT};
+      s/(?:\e\[[0-9;]*m)*[^\n]*\Q$banner\E[^\n]*\n?.*\z//s;
       s/\s*\z//s;
     '
   }
@@ -55,10 +55,19 @@ _patch_alt_screen_pane_contents_archive() {
     return 0
   fi
 
-  local pane_id pane_cmd alt_on pane_file pane_dump
-  while IFS=$'\t' read -r pane_id pane_cmd alt_on; do
+  local pane_id pane_cmd alt_on pane_title window_name pane_file pane_dump agent_kind
+  while IFS=$'\t' read -r pane_id pane_cmd alt_on pane_title window_name; do
     pane_file="$tmpdir/pane_contents/pane-${pane_id}"
-    case "$pane_cmd" in
+    agent_kind=''
+    case "$pane_cmd:$pane_title:$window_name" in
+      claude:*|*:"✳ Claude Code":*|*:*:claude*)
+        agent_kind='claude'
+        ;;
+      codex:*|codex-aarch64-a:*|*:*:codex*)
+        agent_kind='codex'
+        ;;
+    esac
+    case "$agent_kind" in
       claude)
         mkdir -p "$(dirname "$pane_file")"
         pane_dump=''
@@ -72,7 +81,7 @@ _patch_alt_screen_pane_contents_archive() {
         [[ -n "$pane_dump" ]] || continue
         printf '%s\n\n%s\n' "$pane_dump" "$restore_banner" > "$pane_file"
         ;;
-      codex|codex-aarch64-a)
+      codex)
         [[ -f "$pane_file" ]] || continue
         pane_dump="$(cat "$pane_file" 2>/dev/null || printf '')"
         pane_dump="$(printf '%s' "$pane_dump" | _sanitize_restore_dump | _normalize_restore_dump)"
@@ -80,7 +89,7 @@ _patch_alt_screen_pane_contents_archive() {
         printf '%s\n\n%s\n' "$pane_dump" "$restore_banner" > "$pane_file"
         ;;
     esac
-  done < <(tmux list-panes -a -F '#{session_name}:#{window_index}.#{pane_index}'$'\t''#{pane_current_command}'$'\t''#{alternate_on}' 2>/dev/null)
+  done < <(tmux list-panes -a -F '#{session_name}:#{window_index}.#{pane_index}'$'\t''#{pane_current_command}'$'\t''#{alternate_on}'$'\t''#{pane_title}'$'\t''#{window_name}' 2>/dev/null)
 
   (
     cd "$tmpdir" &&
@@ -111,7 +120,14 @@ _filter_snapshot_to_main() {
   tmp="$(mktemp)"
   awk '
     BEGIN { FS = "\t"; OFS = "\t" }
-    /^pane\t/ && $2 == "main" { print; next }
+    /^pane\t/ && $2 == "main" {
+      if ($7 == "✳ Claude Code" || $10 == "claude" || $11 ~ /claude-preserve-scrollback\.py/) {
+        $10 = "claude"
+        $11 = ":claude"
+      }
+      print
+      next
+    }
     /^window\t/ && $2 == "main" { print; next }
     /^grouped_session\t/ && ($2 == "main" || $3 == "main") { print; next }
     /^state\t/ { print "state", "main", ""; next }
