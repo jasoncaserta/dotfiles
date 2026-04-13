@@ -1,3 +1,6 @@
+command = /bin/zsh
+working-directory = ~/Projects
+
 # Theming
 
 theme = "Broadcast"

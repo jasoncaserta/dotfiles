@@ -58,8 +58,8 @@
     ]
   },
   "enabledPlugins": {
-    "codex@openai-codex": true,
-    "swift-lsp@claude-plugins-official": true
+    "codex@openai-codex": false,
+    "swift-lsp@claude-plugins-official": false
   },
   "extraKnownMarketplaces": {
     "openai-codex": {
@@ -69,7 +69,8 @@
       }
     }
   },
-  "mcpServers": {
+  "_disabledMcpServers": {
+    "_comment": "Codex-side plugin/MCP integrations are intentionally parked here instead of deleted so they are easy to re-enable later without Claude loading them by default.",
     "browser-tools": {
       "command": "npx",
       "args": [
@@ -83,5 +84,6 @@
       ]
     }
   },
+  "mcpServers": {},
   "preferredNotifChannel": "terminal_bell"
 }

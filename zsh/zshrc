@@ -1,3 +1,9 @@
+# Powerlevel10k instant prompt redirects stdio during startup. Disable it for
+# the first Ghostty shell so tmux restore/attach runs with a normal terminal.
+if [[ -z "${TMUX:-}" && "${TERM_PROGRAM:-}" = "ghostty" && -z "${NO_AUTO_TMUX:-}" ]]; then
+  typeset -g POWERLEVEL9K_INSTANT_PROMPT=off
+fi
+
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
@@ -46,14 +52,103 @@ _terminal_alert_precmd() {
 
 _tmux_rename_preexec() {
   if [[ -n "${TMUX_PANE:-}" ]] && command -v tmux >/dev/null 2>&1; then
-    local cmd="${1%% *}"
-    tmux rename-window -t "${TMUX_PANE}" "${cmd:t}" 2>/dev/null
+    local full_cmd="$1"
+    local current_name cmd new_name
+    local stripped_cmd="$full_cmd"
+    local prefix_token=''
+    local preserve_restore_name=0
+
+    current_name=$(tmux display-message -p -t "${TMUX_PANE}" '#{window_name}' 2>/dev/null || printf '')
+
+    while [[ "$stripped_cmd" == [A-Za-z_][A-Za-z0-9_]*=* ]]; do
+      prefix_token="${stripped_cmd%% *}"
+      [[ "$prefix_token" == TMUX_RESTORE_KEEP_NAME=* ]] && preserve_restore_name=1
+      [[ "$prefix_token" == DOTFILES_RESTORE=* ]] && preserve_restore_name=1
+      [[ "$stripped_cmd" == *" "* ]] || break
+      stripped_cmd="${stripped_cmd#* }"
+    done
+
+    if (( preserve_restore_name )); then
+      case "$current_name" in
+        ''|zsh|bash) ;;
+        *) return ;;
+      esac
+    fi
+
+    cmd="${stripped_cmd%% *}"
+    new_name="${cmd:t}"
+    [[ -n "$new_name" ]] || return
+
+    tmux rename-window -t "${TMUX_PANE}" "$new_name" 2>/dev/null
   fi
 }
 
 _tmux_rename_precmd() {
   if [[ -n "${TMUX_PANE:-}" ]] && command -v tmux >/dev/null 2>&1; then
+    if _tmux_should_preserve_custom_name; then
+      return 0
+    fi
     tmux rename-window -t "${TMUX_PANE}" "zsh" 2>/dev/null
+  fi
+}
+
+_tmux_should_preserve_custom_name() {
+  local current_name=''
+  [[ -n "${TMUX_PANE:-}" ]] && command -v tmux >/dev/null 2>&1 || return 1
+  [[ -n "${TMUX_RESTORE_KEEP_NAME:-}${DOTFILES_RESTORE:-}" ]] || \
+    [[ "$(tmux show-window-options -v -t "${TMUX_PANE}" @dotfiles_restore_keep_name 2>/dev/null || printf '')" == "1" ]] || \
+    return 1
+  current_name=$(tmux display-message -p -t "${TMUX_PANE}" '#{window_name}' 2>/dev/null || printf '')
+  case "$current_name" in
+    ''|zsh|bash)
+      return 1
+      ;;
+  esac
+  return 0
+}
+
+_tmux_restore_banner() {
+  printf '\033[0m\033[1;38;5;34m%s\033[0m\n' '──────────────── Restored pane output above; new session starts below ────────────────'
+}
+
+_tmux_restore_debug_log() {
+  {
+    printf '%s\tpane=%s\tpwd=%s\t%s\n' \
+      "$(date '+%Y-%m-%d %H:%M:%S')" \
+      "${TMUX_PANE:-}" \
+      "$PWD" \
+      "$*"
+  } >> /tmp/tmux-restore-debug.log 2>/dev/null || true
+}
+
+_tmux_prepare_restore_agent_launch() {
+  local wait_for_client="${1:-0}"
+  local print_banner_only="${2:-0}"
+  local _sess=''
+  local _waited=0
+
+  [[ -n "${TMUX_RESTORE_KEEP_NAME:-}" ]] || return 0
+
+  if (( print_banner_only )); then
+    printf '\n'
+    _tmux_restore_banner
+    printf '\n'
+  else
+    printf '\n'
+    # Clear only the visible viewport so restored output remains available in
+    # tmux history while the fresh agent session starts beneath a restore banner.
+    printf '\033[0m\033[39m\033[49m\033[2J\033[H'
+    _tmux_restore_banner
+    printf '\n'
+  fi
+
+  if (( wait_for_client )) && [[ -n "${TMUX_PANE:-}" ]] && command -v tmux >/dev/null 2>&1; then
+    _sess=$(tmux display-message -p '#{session_name}' 2>/dev/null || printf 'main')
+    until tmux list-clients -t "$_sess" 2>/dev/null | grep -q .; do
+      sleep 0.1
+      _waited=$(( _waited + 1 ))
+      (( _waited >= 100 )) && break
+    done
   fi
 }
 
@@ -64,21 +159,26 @@ add-zsh-hook precmd _tmux_rename_precmd
 
 claude() {
   local pane="$TMUX_PANE"
-  if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1; then
+  if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1 && [[ -z "${DOTFILES_RESTORE:-}" ]] && ! _tmux_should_preserve_custom_name; then
     tmux rename-window -t "$pane" "claude" 2>/dev/null
+  fi
+  if [[ -n "${DOTFILES_RESTORE:-}" ]]; then
+    _tmux_prepare_restore_agent_launch 1 1
   fi
   command claude "$@"
 }
 
 codex() {
   local pane="$TMUX_PANE"
-  if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1; then
+  if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1 && [[ -z "${DOTFILES_RESTORE:-}" ]] && ! _tmux_should_preserve_custom_name; then
     tmux rename-window -t "$pane" "codex" 2>/dev/null
   fi
+  _tmux_prepare_restore_agent_launch 1
   command codex -c features.codex_hooks=true "$@"
 }
 
 _prompt_tmux_restore_picker() {
+  setopt local_options no_monitor
   local resurrect_dir="$HOME/.tmux/resurrect"
 
   # Bail early if another terminal already started the session
@@ -99,12 +199,16 @@ _prompt_tmux_restore_picker() {
       entries+=("manual  $(_file_age_str "$resurrect_dir/$line")"$'\t'"$line")
   done < <(cat "$resurrect_dir/last-manual-list" 2>/dev/null)
 
-  # Fallback to 'last' symlink if no lists
-  if (( ${#entries[@]} == 0 )); then
-    local resolved
-    resolved="$(readlink "$resurrect_dir/last" 2>/dev/null || printf '')"
-    [[ -n "$resolved" && -f "$resurrect_dir/$resolved" ]] && \
-      entries+=("auto  $(_file_age_str "$resurrect_dir/$resolved")"$'\t'"$resolved")
+  # Always include the most recent save (last symlink) at the top if not already listed.
+  # Handles the race where kill-server happened before _update_save_list could write the entry.
+  local _last_target
+  _last_target="$(readlink "$resurrect_dir/last" 2>/dev/null || printf '')"
+  if [[ -n "$_last_target" && -f "$resurrect_dir/$_last_target" ]]; then
+    local _already_in=0 _e
+    for _e in "${entries[@]}"; do
+      [[ "${_e##*$'\t'}" == "$_last_target" ]] && { _already_in=1; break; }
+    done
+    (( _already_in )) || entries=("latest  $(_file_age_str "$resurrect_dir/$_last_target")"$'\t'"$_last_target" "${entries[@]}")
   fi
 
   (( ${#entries[@]} == 0 )) && return 1
@@ -125,6 +229,7 @@ _prompt_tmux_restore_picker() {
 
   selected=$(printf '%s\n' "${entries[@]}" | fzf \
     --prompt='Restore tmux? > ' \
+    --header='Claude restore note: resizing the window (including opening quick terminal) will hide restored output when claude redraws' \
     --height=~$(( ${#entries[@]} + 3 )) \
     --layout=reverse \
     --delimiter=$'\t' \
@@ -144,6 +249,42 @@ _prompt_tmux_restore_picker() {
 
   TMUX_RESTORE_FILE="$resurrect_dir/$file"
   return 0
+}
+
+_run_with_spinner() {
+  local message="$1"
+  shift
+
+  # Write directly to /dev/tty so output is visible even when p10k instant
+  # prompt has stdout redirected during zshrc initialisation.
+  local _tty
+  _tty=$(tty 2>/dev/null) || _tty=/dev/tty
+
+  setopt local_options no_monitor  # suppress job-control notifications for the spinner
+  local spinner_pid=''
+  (
+    local frames=('⣾' '⣽' '⣻' '⢿' '⡿' '⣟' '⣯' '⣷')
+    local i=1
+    while true; do
+      printf '\r%s  %s' "${frames[i]}" "$message" >> "$_tty" 2>/dev/null || break
+      i=$(( (i % ${#frames[@]}) + 1 ))
+      sleep 0.1
+    done
+  ) &
+  spinner_pid=$!
+
+  "$@"
+  local cmd_status=$?
+
+  kill "$spinner_pid" 2>/dev/null || true
+  wait "$spinner_pid" 2>/dev/null || true
+  printf '\r%*s\r' "$(( ${#message} + 3 ))" '' >> "$_tty" 2>/dev/null || true
+
+  if (( cmd_status != 0 )); then
+    printf 'error: %s failed (exit %d)\n' "$message" "$cmd_status" >&2
+  fi
+
+  return "$cmd_status"
 }
 
 jason() {
@@ -259,6 +400,9 @@ if command -v tmux >/dev/null 2>&1; then
   case $- in
     *i*)
       if [ -z "$TMUX" ] && [ "${TERM_PROGRAM:-}" = "ghostty" ] && [ -z "${NO_AUTO_TMUX:-}" ]; then
+        # Keep this aligned with Ghostty's default working-directory so fresh
+        # auto-started tmux sessions land in the same place.
+        _TMUX_DEFAULT_DIR="$HOME/Projects"
         if ! tmux list-sessions >/dev/null 2>&1; then
           local TMUX_RESTORE_FILE=''
           local should_restore=0
@@ -267,13 +411,24 @@ if command -v tmux >/dev/null 2>&1; then
             should_restore=1
           fi
 
-          if tmux new-session -d -s main 2>/dev/null; then
-            _DOTFILES_DIR="$(cat ~/.config/dotfiles/path 2>/dev/null)"
-            if (( should_restore )) && [ -x "$_DOTFILES_DIR/scripts/tmux-restore.sh" ] && [ -n "$TMUX_RESTORE_FILE" ]; then
-              tmux attach-session -t main \; run-shell "$_DOTFILES_DIR/scripts/tmux-restore.sh '$TMUX_RESTORE_FILE'"
-              return
-            fi
-          else
+          local _DOTFILES_DIR
+          _DOTFILES_DIR="$(cat ~/.config/dotfiles/path 2>/dev/null)"
+          if (( should_restore )) && [ -x "$_DOTFILES_DIR/scripts/tmux-restore.sh" ] && [ -n "$TMUX_RESTORE_FILE" ]; then
+            _run_with_spinner "Restoring tmux snapshot..." \
+              zsh -c '"$1" "$2" </dev/null >/dev/null 2>&1' _ "$_DOTFILES_DIR/scripts/tmux-restore.sh" "$TMUX_RESTORE_FILE"
+            # Kill any resurrect spinner still running in the background so it
+            # doesn't interfere with the tmux attach that follows.
+            # Use SIGKILL to bypass the spinner's SIGTERM trap, which would
+            # otherwise call `tmux display-message` without a terminal.
+            pkill -9 -f "tmux_spinner" 2>/dev/null || true
+            tmux has-session -t main 2>/dev/null || tmux new-session -d -c "$_TMUX_DEFAULT_DIR" -s main 2>/dev/null
+            local _attach_wait=0
+            until tmux list-panes -t main 2>/dev/null | grep -q .; do
+              (( _attach_wait++ >= 20 )) && break
+              sleep 0.1
+            done
+            unset _attach_wait
+          elif ! tmux new-session -d -c "$_TMUX_DEFAULT_DIR" -s main 2>/dev/null; then
             local _tmux_wait=0
             while ! tmux has-session -t main 2>/dev/null; do
               (( _tmux_wait++ ))
@@ -284,7 +439,13 @@ if command -v tmux >/dev/null 2>&1; then
             done
           fi
         fi
-        tmux attach-session -t main 2>/dev/null || tmux attach-session 2>/dev/null
+        # Use an explicit attach path after restore so we don't depend on
+        # `new-session -A` behavior in the first Ghostty bootstrap shell.
+        if tmux has-session -t main 2>/dev/null; then
+          tmux attach-session -t main 2>/dev/null && exit 0
+        else
+          tmux new-session -c "$_TMUX_DEFAULT_DIR" -s main 2>/dev/null && exit 0
+        fi
         return
       fi
       ;;
@@ -296,8 +457,11 @@ if [[ -n "$TMUX" ]]; then
   _loop_pid_file="/tmp/tmux-autosave-loop.pid"
   if ! { [[ -f "$_loop_pid_file" ]] && kill -0 "$(cat "$_loop_pid_file")" 2>/dev/null; }; then
     _dotfiles_dir=$(cat "$HOME/.config/dotfiles/path" 2>/dev/null)
+    # Double-fork so the loop is re-parented to launchd, not the current shell.
+    # If it stayed a child here, pgrep -P <pane_pid> would find it alongside
+    # codex/claude and save the wrong command in the resurrect file.
     [[ -n "$_dotfiles_dir" && -x "$_dotfiles_dir/scripts/tmux-autosave-loop.sh" ]] && \
-      bash "$_dotfiles_dir/scripts/tmux-autosave-loop.sh" &>/dev/null &|
+      (bash "$_dotfiles_dir/scripts/tmux-autosave-loop.sh" &>/dev/null &)
   fi
   unset _loop_pid_file _dotfiles_dir
 fi

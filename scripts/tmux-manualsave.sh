@@ -17,5 +17,8 @@ tmux set -g @save-flash "✓ manual tmux snapshot saved" 2>/dev/null || true
 
 new_file="$(readlink "$LAST" 2>/dev/null || printf '')"
 if [[ -n "$new_file" && -s "$RESURRECT_DIR/$new_file" ]]; then
+  _filter_snapshot_to_main "$RESURRECT_DIR/$new_file"
+  _persist_snapshot_pane_archive "$RESURRECT_DIR/$new_file"
   _update_save_list "$new_file" "$RESURRECT_DIR/last-manual-list"
+  _prune_snapshot_sets "$RESURRECT_DIR"
 fi

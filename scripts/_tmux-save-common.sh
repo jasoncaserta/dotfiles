@@ -1,10 +1,11 @@
 #!/bin/bash
 # Shared helpers sourced by tmux-autosave.sh, tmux-manualsave.sh, and tmux-save-status.sh.
 
-# Run tmux-resurrect's save.sh with a shim that suppresses status-bar output.
-# The shim intercepts `tmux display-message` calls without -p and silently drops them.
-_run_save() {
-  local save_script="$1"
+# Run a tmux plugin script with a shim that suppresses non-`-p` display-message
+# banners so status feedback can be shown in the tmux status line instead.
+_run_tmux_script_quiet() {
+  local script="$1"
+  shift
   local _tmpdir real_tmux
   _tmpdir=$(mktemp -d)
   real_tmux=$(command -v tmux)
@@ -19,8 +20,169 @@ done
 SHIM
   printf 'exec %s "$@"\n' "$real_tmux" >> "$_tmpdir/tmux"
   chmod +x "$_tmpdir/tmux"
-  PATH="$_tmpdir:$PATH" "$save_script"
-  rm -rf "$_tmpdir"
+  PATH="$_tmpdir:$PATH" "$script" "$@"
+  local _status=$?
+  # Defer cleanup so background processes spawned by the plugin (e.g.
+  # tmux_spinner.sh) can finish using the shim before it is removed.
+  ( sleep 5; rm -rf "$_tmpdir" ) &
+  disown
+  return "$_status"
+}
+
+_tmux_save_warn() {
+  local message="$1"
+  if [[ "${TMUX_SAVE_DEBUG:-0}" == "1" ]]; then
+    printf 'tmux-save warning: %s\n' "$message" >&2
+  fi
+}
+
+_sanitize_restore_dump() {
+  perl -ne 'print unless /tmux-restore-agent-session\.sh(?:["[:space:]]+)(?:codex|claude)\b|TMUX_RESTORE_KEEP_NAME=1[[:space:]]+(?:codex|claude)\b|DOTFILES_RESTORE=1[[:space:]]+(?:codex|claude)\b/'
+}
+
+_strip_restore_banner_only() {
+  RESTORE_BANNER_TEXT='Restored pane output above; new session starts below' perl -0pe '
+    my $banner = $ENV{RESTORE_BANNER_TEXT};
+    s/(?:\e\[[0-9;]*m)*[^\n]*\Q$banner\E[^\n]*\n?/\n/sg;
+    s/\s*\z//s;
+  '
+}
+
+_snapshot_agent_kind() {
+  local pane_cmd="$1"
+  local pane_title="$2"
+  local window_name="$3"
+  case "$pane_cmd:$pane_title:$window_name" in
+    claude:*|*:"✳ Claude Code":*|*:*:claude*)
+      printf '%s\n' 'claude'
+      ;;
+    codex:*|codex-aarch64-a:*|*:*:codex*)
+      printf '%s\n' 'codex'
+      ;;
+  esac
+}
+
+_merge_restore_dumps() {
+  local merged='' part=''
+  for part in "$@"; do
+    [[ -n "$part" ]] || continue
+    if [[ -z "$merged" ]]; then
+      merged="$part"
+    elif [[ "$merged" == *"$part"* ]]; then
+      continue
+    elif [[ "$part" == *"$merged"* ]]; then
+      merged="$part"
+    else
+      merged+=$'\n\n'"$part"
+    fi
+  done
+  printf '%s' "$merged"
+}
+
+_patch_alt_screen_pane_contents_archive() {
+  local archive="$HOME/.tmux/resurrect/pane_contents.tar.gz"
+  [[ -f "$archive" ]] || return 0
+  command -v tmux >/dev/null 2>&1 || return 0
+  local restore_banner=$'\033[0m\033[1;38;5;34m──────────────── Restored pane output above; new session starts below ────────────────\033[0m'
+
+  local tmpdir
+  tmpdir=$(mktemp -d) || return 0
+
+  if ! tar -xzf "$archive" -C "$tmpdir" 2>/dev/null; then
+    _tmux_save_warn "could not unpack pane contents archive: $archive"
+    rm -rf "$tmpdir"
+    return 0
+  fi
+
+  local pane_id pane_cmd alt_on pane_title window_name pane_file pane_dump primary_dump alt_dump agent_kind
+  while IFS=$'\t' read -r pane_id pane_cmd alt_on pane_title window_name; do
+    pane_file="$tmpdir/pane_contents/pane-${pane_id}"
+    agent_kind="$(_snapshot_agent_kind "$pane_cmd" "$pane_title" "$window_name")"
+    case "$agent_kind" in
+      claude|codex)
+        mkdir -p "$(dirname "$pane_file")"
+        primary_dump="$(tmux capture-pane -epJS -1000 -t "$pane_id" 2>/dev/null || printf '')"
+        alt_dump=''
+
+        case "$agent_kind" in
+          claude)
+            pane_dump="$primary_dump"
+            ;;
+          codex)
+            if [[ "$alt_on" == "1" ]]; then
+              alt_dump="$(tmux capture-pane -aepJ -t "$pane_id" 2>/dev/null || printf '')"
+            fi
+            pane_dump="$(_merge_restore_dumps "$primary_dump" "$alt_dump")"
+            ;;
+        esac
+
+        pane_dump="$(printf '%s' "$pane_dump" | _sanitize_restore_dump | _strip_restore_banner_only)"
+        [[ -n "$pane_dump" ]] || continue
+        printf '%s\n\n%s\n' "$pane_dump" "$restore_banner" > "$pane_file"
+        ;;
+    esac
+  done < <(tmux list-panes -a -F '#{session_name}:#{window_index}.#{pane_index}'$'\t''#{pane_current_command}'$'\t''#{alternate_on}'$'\t''#{pane_title}'$'\t''#{window_name}' 2>/dev/null)
+
+  (
+    cd "$tmpdir" &&
+    tar cf - ./pane_contents | gzip > "${archive}.tmp"
+  ) 2>/dev/null || {
+    _tmux_save_warn "could not repack pane contents archive: $archive"
+    rm -f "${archive}.tmp"
+    rm -rf "$tmpdir"
+    return 0
+  }
+
+  mv "${archive}.tmp" "$archive"
+  rm -rf "$tmpdir"
+}
+
+_run_save() {
+  _run_tmux_script_quiet "$1"
+  _patch_alt_screen_pane_contents_archive
+}
+
+_snapshot_pane_archive_path() {
+  local snapshot="$1"
+  [[ -n "$snapshot" ]] || return 0
+  printf '%s\n' "${snapshot%.txt}.pane_contents.tar.gz"
+}
+
+_persist_snapshot_pane_archive() {
+  local snapshot="$1"
+  local archive="$HOME/.tmux/resurrect/pane_contents.tar.gz"
+  local snapshot_archive=''
+
+  [[ -n "$snapshot" && -f "$snapshot" && -f "$archive" ]] || return 0
+  snapshot_archive="$(_snapshot_pane_archive_path "$snapshot")"
+  [[ -n "$snapshot_archive" ]] || return 0
+  cp "$archive" "$snapshot_archive" 2>/dev/null || true
+}
+
+# Rewrite a resurrect snapshot in place so it only contains the persistent
+# session we actually restore into.
+_filter_snapshot_to_main() {
+  local snapshot="$1"
+  local tmp
+
+  [[ -n "$snapshot" && -f "$snapshot" ]] || return 0
+
+  tmp="$(mktemp)"
+  awk '
+    BEGIN { FS = "\t"; OFS = "\t" }
+    /^pane\t/ && $2 == "main" {
+      if ($7 == "✳ Claude Code" || $10 == "claude" || $11 ~ /claude-preserve-scrollback\.py/) {
+        $10 = "claude"
+        $11 = ":claude"
+      }
+      print
+      next
+    }
+    /^window\t/ && $2 == "main" { print; next }
+    /^grouped_session\t/ && ($2 == "main" || $3 == "main") { print; next }
+    /^state\t/ { print "state", "main", ""; next }
+  ' "$snapshot" > "$tmp"
+  mv "$tmp" "$snapshot"
 }
 
 # Prepend new_file to list, keeping at most the 3 most recent unique entries.
@@ -29,6 +191,65 @@ _update_save_list() {
   printf '%s\n' "$new_file" > "${list}.tmp"
   [[ -f "$list" ]] && grep -v "^${new_file}$" "$list" | head -2 >> "${list}.tmp" || true
   mv "${list}.tmp" "$list"
+}
+
+_prune_snapshot_sets() {
+  local resurrect_dir="$1"
+  local auto_list="$resurrect_dir/last-auto-list"
+  local manual_list="$resurrect_dir/last-manual-list"
+  local keep_tmp="${TMPDIR:-/tmp}/tmux-keep.$$"
+  local keep_txt_tmp="${TMPDIR:-/tmp}/tmux-keep-txt.$$"
+  local snapshot snapshot_archive
+
+  : > "$keep_tmp"
+
+  if [[ -f "$auto_list" ]]; then
+    head -3 "$auto_list" >> "$keep_tmp"
+  fi
+  if [[ -f "$manual_list" ]]; then
+    head -3 "$manual_list" >> "$keep_tmp"
+  fi
+
+  awk 'NF && !seen[$0]++' "$keep_tmp" > "$keep_txt_tmp"
+  mv "$keep_txt_tmp" "$keep_tmp"
+
+  while IFS= read -r snapshot; do
+    [[ -n "$snapshot" ]] || continue
+    [[ -f "$resurrect_dir/$snapshot" ]] || continue
+    printf '%s\n' "$snapshot"
+  done < "$keep_tmp" > "${keep_tmp}.existing"
+  mv "${keep_tmp}.existing" "$keep_tmp"
+
+  if [[ -f "$auto_list" ]]; then
+    grep -Fxf "$keep_tmp" "$auto_list" > "${auto_list}.tmp" || true
+    mv "${auto_list}.tmp" "$auto_list"
+  fi
+  if [[ -f "$manual_list" ]]; then
+    grep -Fxf "$keep_tmp" "$manual_list" > "${manual_list}.tmp" || true
+    mv "${manual_list}.tmp" "$manual_list"
+  fi
+
+  while IFS= read -r snapshot; do
+    [[ -n "$snapshot" ]] || continue
+    snapshot_archive="$(_snapshot_pane_archive_path "$resurrect_dir/$snapshot")"
+    printf '%s\n' "$snapshot_archive"
+  done < "$keep_tmp" > "${keep_tmp}.archives"
+
+  while IFS= read -r snapshot; do
+    [[ -n "$snapshot" ]] || continue
+    grep -Fxq "$snapshot" "$keep_tmp" && continue
+    rm -f "$resurrect_dir/$snapshot"
+    snapshot_archive="$(_snapshot_pane_archive_path "$resurrect_dir/$snapshot")"
+    [[ -n "$snapshot_archive" ]] && rm -f "$snapshot_archive"
+  done < <(find "$resurrect_dir" -maxdepth 1 -type f -name 'tmux_resurrect_*.txt' -print | sed 's#^.*/##' | sort)
+
+  while IFS= read -r snapshot_archive; do
+    [[ -n "$snapshot_archive" ]] || continue
+    grep -Fxq "$snapshot_archive" "${keep_tmp}.archives" && continue
+    rm -f "$snapshot_archive"
+  done < <(find "$resurrect_dir" -maxdepth 1 -type f -name 'tmux_resurrect_*.pane_contents.tar.gz' -print | sort)
+
+  rm -f "$keep_tmp" "${keep_tmp}.archives"
 }
 
 # Print human-readable age for a file given its absolute path.
