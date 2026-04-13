@@ -58,9 +58,10 @@ The `codex` shell wrapper automatically passes `-c features.codex_hooks=true`. T
 | `~/.codex/config.toml` | `codex/config.toml` | Model, features, project trust levels, MCP servers (leader only — has machine-specific paths) |
 | `~/.codex/rules/` | `codex/rules/` | Auto-allow rules for Codex command approval |
 
-tmux-resurrect is configured to relaunch `claude` and `codex` panes after restore.
+tmux-resurrect directly relaunches `codex` panes after restore. `claude` panes are restored by `scripts/tmux-restore.sh`, which stages the Claude command and then focuses each Claude pane briefly before sending Enter so restored scrollback remains reachable.
 Snapshots are trimmed to the `main` session after each save so old side sessions do not bloat restore time.
 Pane contents are captured on save, so restore shows prior terminal output above a banner before starting a fresh `claude` or `codex` process.
+Only the last 3 autosaves and last 3 manual saves are retained, along with their matching pane-content sidecars.
 
 **tmux diagnostics**
 Run `bash scripts/tmux-check.sh` to diagnose common issues in one pass — checks the tmux server, resurrect plugin, last save age, global hooks, shell script syntax, and the p10k symlink. Use this instead of manually running `tmux show-hooks`, `zsh -n`, and resurrection file inspections separately.
