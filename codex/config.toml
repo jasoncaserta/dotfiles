@@ -29,10 +29,12 @@ trust_level = "trusted"
 [plugins."github@openai-curated"]
 enabled = true
 
-[mcp_servers.browser-tools]
-command = "node"
-args = ["/Users/jasoncaserta/Projects/Retro Radio/scripts/browser-tools-mcp-fixed.cjs"]
-
-[mcp_servers.playwright]
-command = "npx"
-args = ["@playwright/mcp@latest", "--browser", "chromium"]
+# Disabled MCP servers. Uncomment to re-enable.
+#
+# [mcp_servers.browser-tools]
+# command = "node"
+# args = ["/Users/jasoncaserta/Projects/Retro Radio/scripts/browser-tools-mcp-fixed.cjs"]
+#
+# [mcp_servers.playwright]
+# command = "npx"
+# args = ["@playwright/mcp@latest", "--browser", "chromium"]
