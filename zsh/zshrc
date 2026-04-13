@@ -402,7 +402,7 @@ if command -v tmux >/dev/null 2>&1; then
   case $- in
     *i*)
       if [ -z "$TMUX" ] && [ "${TERM_PROGRAM:-}" = "ghostty" ] && [ -z "${NO_AUTO_TMUX:-}" ]; then
-        local _TMUX_DEFAULT_DIR="$HOME/Projects"
+        _TMUX_DEFAULT_DIR="$HOME/Projects"
         if ! tmux list-sessions >/dev/null 2>&1; then
           local TMUX_RESTORE_FILE=''
           local should_restore=0
@@ -422,7 +422,12 @@ if command -v tmux >/dev/null 2>&1; then
             # otherwise call `tmux display-message` without a terminal.
             pkill -9 -f "tmux_spinner" 2>/dev/null || true
             tmux has-session -t main 2>/dev/null || tmux new-session -d -c "$_TMUX_DEFAULT_DIR" -s main 2>/dev/null
-            sleep 0.5  # give the restored session a moment before attaching
+            local _attach_wait=0
+            until tmux list-panes -t main 2>/dev/null | grep -q .; do
+              (( _attach_wait++ >= 20 )) && break
+              sleep 0.1
+            done
+            unset _attach_wait
           elif ! tmux new-session -d -c "$_TMUX_DEFAULT_DIR" -s main 2>/dev/null; then
             local _tmux_wait=0
             while ! tmux has-session -t main 2>/dev/null; do

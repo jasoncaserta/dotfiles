@@ -53,7 +53,6 @@ def main() -> int:
           if stdin_fd in ready:
               data = os.read(stdin_fd, 8192)
               if not data:
-                  os.close(master_fd)
                   break
               os.write(master_fd, data)
           if master_fd in ready:
@@ -66,6 +65,10 @@ def main() -> int:
               os.write(sys.stdout.fileno(), filter_output(data))
         return proc.wait()
     finally:
+        try:
+            os.close(master_fd)
+        except OSError:
+            pass
         termios.tcsetattr(stdin_fd, termios.TCSADRAIN, old_tty)
 
 

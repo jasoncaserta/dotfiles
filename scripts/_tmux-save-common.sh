@@ -29,23 +29,23 @@ SHIM
   return "$_status"
 }
 
+_sanitize_restore_dump() {
+  perl -ne 'print unless /tmux-restore-agent-session\.sh(?:["[:space:]]+)(?:codex|claude)\b|TMUX_RESTORE_KEEP_NAME=1[[:space:]]+(?:codex|claude)\b|DOTFILES_RESTORE=1[[:space:]]+(?:codex|claude)\b/'
+}
+
+_normalize_restore_dump() {
+  RESTORE_BANNER_TEXT='Restored pane output above; new session starts below' perl -0pe '
+    my $banner = $ENV{RESTORE_BANNER_TEXT};
+    s/(?:\e\[[0-9;]*m)*[^\n]*\Q$banner\E[^\n]*\n?.*\z//s;
+    s/\s*\z//s;
+  '
+}
+
 _patch_alt_screen_pane_contents_archive() {
   local archive="$HOME/.tmux/resurrect/pane_contents.tar.gz"
   [[ -f "$archive" ]] || return 0
   command -v tmux >/dev/null 2>&1 || return 0
   local restore_banner=$'\033[38;5;34m──────────────── Restored pane output above; new session starts below ────────────────\033[0m'
-
-  _sanitize_restore_dump() {
-    perl -ne 'print unless /tmux-restore-agent-session\.sh(?:["[:space:]]+)(?:codex|claude)\b|TMUX_RESTORE_KEEP_NAME=1[[:space:]]+(?:codex|claude)\b|DOTFILES_RESTORE=1[[:space:]]+(?:codex|claude)\b/'
-  }
-
-  _normalize_restore_dump() {
-    RESTORE_BANNER_TEXT='Restored pane output above; new session starts below' perl -0pe '
-      my $banner = $ENV{RESTORE_BANNER_TEXT};
-      s/(?:\e\[[0-9;]*m)*[^\n]*\Q$banner\E[^\n]*\n?.*\z//s;
-      s/\s*\z//s;
-    '
-  }
 
   local tmpdir
   tmpdir=$(mktemp -d) || return 0

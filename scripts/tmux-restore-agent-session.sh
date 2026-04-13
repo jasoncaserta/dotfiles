@@ -1,4 +1,8 @@
 #!/bin/bash
+# NOTE: This script is superseded by the DOTFILES_RESTORE=1 env-var flow handled
+# by the zsh wrappers (codex/claude functions in zshrc). It is kept so that old
+# resurrect snapshots containing references to it can still be sanitized correctly
+# by _sanitize_restore_dump in _tmux-save-common.sh.
 set -euo pipefail
 
 if [[ $# -eq 0 ]]; then
@@ -16,6 +20,17 @@ fi
 
 restore_banner='──────────────── Restored pane output above; new session starts below ────────────────'
 
+_wait_for_client() {
+  # Wait up to 10 s for a tmux client to attach so the TUI gets terminal
+  # capability responses (e.g. background-color detection from Ghostty).
+  local _sess _waited=0
+  _sess=$(tmux display-message -p '#{session_name}' 2>/dev/null || printf 'main')
+  until tmux list-clients -t "$_sess" 2>/dev/null | grep -q .; do
+    sleep 0.1
+    (( ++_waited >= 100 )) && break
+  done
+}
+
 agent_bin="$(basename "$1")"
 case "$agent_bin" in
   codex|codex-aarch64-a)
@@ -27,17 +42,7 @@ case "$agent_bin" in
     printf '\033[38;5;34m%s\033[0m\n' "$restore_banner"
     printf '\n'
     export TMUX_RESTORE_KEEP_NAME=1
-    # Wait for a client to attach so Ghostty can answer terminal capability
-    # queries (e.g. background-color detection). Without a client, codex
-    # gets no response and renders the input area without a background.
-    _sess=$(tmux display-message -p '#{session_name}' 2>/dev/null || printf 'main')
-    _waited=0
-    until tmux list-clients -t "$_sess" 2>/dev/null | grep -q .; do
-      sleep 0.1
-      _waited=$(( _waited + 1 ))
-      (( _waited >= 100 )) && break   # 10 s max
-    done
-    unset _sess _waited
+    _wait_for_client
     exec codex -c features.codex_hooks=true
     ;;
   claude)
@@ -47,15 +52,7 @@ case "$agent_bin" in
     printf '\033[38;5;34m%s\033[0m\n' "$restore_banner"
     printf '\n'
     export TMUX_RESTORE_KEEP_NAME=1
-    # Wait for a client to attach before launching the TUI.
-    _sess=$(tmux display-message -p '#{session_name}' 2>/dev/null || printf 'main')
-    _waited=0
-    until tmux list-clients -t "$_sess" 2>/dev/null | grep -q .; do
-      sleep 0.1
-      _waited=$(( _waited + 1 ))
-      (( _waited >= 100 )) && break   # 10 s max
-    done
-    unset _sess _waited
+    _wait_for_client
     exec claude
     ;;
 esac
