@@ -11,6 +11,7 @@ pane_archive=''
 original_resurrect_dir=''
 bootstrapped_session=''
 _was_running=0
+queued_claude_enter_targets=''
 
 # shellcheck source=_tmux-save-common.sh
 source "$(dirname "$0")/_tmux-save-common.sh"
@@ -71,6 +72,59 @@ _wait_for_shell_and_stable_size() {
     waited=$(( waited + 1 ))
   done
   return 1
+}
+
+_queue_claude_enter_target() {
+  local pane_target="$1"
+  [[ -n "$pane_target" ]] || return 0
+  if [[ -z "$queued_claude_enter_targets" ]]; then
+    queued_claude_enter_targets="$pane_target"
+  else
+    queued_claude_enter_targets+=$'\n'"$pane_target"
+  fi
+}
+
+_run_queued_claude_enters() {
+  local queued_targets="$queued_claude_enter_targets"
+
+  [[ -n "$queued_targets" ]] || return 0
+  queued_claude_enter_targets=''
+
+  (
+    local original_pane='' pane_target='' has_clients=0 target_client='' waited=0
+
+    while (( waited < 150 )); do
+      target_client="$(tmux list-clients -F '#{client_tty}' 2>/dev/null | head -1 || true)"
+      [[ -n "$target_client" ]] && break
+      sleep 0.1
+      waited=$(( waited + 1 ))
+    done
+
+    if [[ -n "$target_client" ]]; then
+      has_clients=1
+      original_pane="$(tmux display-message -c "$target_client" -p '#{session_name}:#{window_index}.#{pane_index}' 2>/dev/null || printf '')"
+    fi
+
+    while IFS= read -r pane_target; do
+      [[ -n "$pane_target" ]] || continue
+      if (( has_clients )); then
+        tmux switch-client -c "$target_client" -t "${pane_target%.*}" 2>/dev/null || true
+        tmux select-window -t "${pane_target%.*}" 2>/dev/null || true
+        tmux select-pane -t "$pane_target" 2>/dev/null || true
+        tmux refresh-client -S 2>/dev/null || true
+        sleep 0.2
+      fi
+      tmux send-keys -t "$pane_target" Enter 2>/dev/null || true
+      sleep 0.1
+    done <<< "$queued_targets"
+
+    if (( has_clients )) && [[ -n "$original_pane" ]]; then
+      tmux switch-client -c "$target_client" -t "${original_pane%.*}" 2>/dev/null || true
+      tmux select-window -t "${original_pane%.*}" 2>/dev/null || true
+      tmux select-pane -t "$original_pane" 2>/dev/null || true
+      tmux refresh-client -S 2>/dev/null || true
+    fi
+  ) & disown
 }
 
 if [[ -z "${TMUX:-}" ]]; then
@@ -204,11 +258,16 @@ if [[ "$_was_running" -eq 1 && -n "$tmp_file" && -f "$tmp_file" ]]; then
     # Wait up to 5 s for the pane to reach a shell, then launch the restored
     # agent through the user's normal shell wrapper.
     _pane_target="${_sess}:${_win}.${_pi}"
+    tmux set-option -pt "$_pane_target" scroll-on-clear on 2>/dev/null || true
     if [[ "$_agent" == "claude" ]]; then
+      tmux set-option -pt "$_pane_target" alternate-screen off 2>/dev/null || true
       if _wait_for_shell_and_stable_size "$_pane_target" 120; then
         _restore_cmd="$(_restore_agent_command "$_agent")"
         [[ -n "$_restore_cmd" ]] && tmux send-keys -t "$_pane_target" C-c 2>/dev/null || true
-        [[ -n "$_restore_cmd" ]] && tmux send-keys -t "$_pane_target" "$_restore_cmd" Enter 2>/dev/null || true
+        if [[ -n "$_restore_cmd" ]]; then
+          tmux send-keys -t "$_pane_target" "$_restore_cmd" 2>/dev/null || true
+          _queue_claude_enter_target "$_pane_target"
+        fi
       fi
     else
       _waited=0
@@ -230,6 +289,7 @@ if [[ "$_was_running" -eq 1 && -n "$tmp_file" && -f "$tmp_file" ]]; then
       done
     fi
   done < <(grep $'^pane\t' "$tmp_file")
+  _run_queued_claude_enters
   unset _lt _sess _win _wa _wf _pi _pt _dir _pa _pcmd _pfull _agent _pane_cmd _restore_cmd _window_name _waited _pane_target
 fi
 
@@ -239,11 +299,16 @@ if [[ "$_was_running" -eq 0 && -n "$tmp_file" && -f "$tmp_file" ]]; then
     _agent="$(_snapshot_agent_kind "${_pfull#:}" "$_pt" "$_window_name")"
     [[ -n "$_agent" ]] || continue
     _pane_target="${_sess}:${_win}.${_pi}"
+    tmux set-option -pt "$_pane_target" scroll-on-clear on 2>/dev/null || true
     if [[ "$_agent" == "claude" ]]; then
+      tmux set-option -pt "$_pane_target" alternate-screen off 2>/dev/null || true
       if _wait_for_shell_and_stable_size "$_pane_target" 160; then
         _restore_cmd="$(_restore_agent_command "$_agent")"
         [[ -n "$_restore_cmd" ]] && tmux send-keys -t "$_pane_target" C-c 2>/dev/null || true
-        [[ -n "$_restore_cmd" ]] && tmux send-keys -t "$_pane_target" "$_restore_cmd" Enter 2>/dev/null || true
+        if [[ -n "$_restore_cmd" ]]; then
+          tmux send-keys -t "$_pane_target" "$_restore_cmd" 2>/dev/null || true
+          _queue_claude_enter_target "$_pane_target"
+        fi
       fi
     else
       _waited=0
@@ -273,5 +338,6 @@ if [[ "$_was_running" -eq 0 && -n "$tmp_file" && -f "$tmp_file" ]]; then
       done
     fi
   done < <(grep $'^pane\t' "$tmp_file")
+  _run_queued_claude_enters
   unset _lt _sess _win _wa _wf _pi _pt _dir _pa _pcmd _pfull _agent _live_agent _pane_cmd _restore_cmd _window_name _waited _pane_target
 fi

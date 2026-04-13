@@ -159,17 +159,11 @@ add-zsh-hook precmd _tmux_rename_precmd
 
 claude() {
   local pane="$TMUX_PANE"
-  local _dotfiles=''
   if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1 && [[ -z "${DOTFILES_RESTORE:-}" ]] && ! _tmux_should_preserve_custom_name; then
     tmux rename-window -t "$pane" "claude" 2>/dev/null
   fi
   if [[ -n "${DOTFILES_RESTORE:-}" ]]; then
     _tmux_prepare_restore_agent_launch 1 1
-    _dotfiles="$(cat ~/.config/dotfiles/path 2>/dev/null)"
-    if [[ -n "$_dotfiles" ]] && command -v python3 >/dev/null 2>&1; then
-      command python3 "$_dotfiles/scripts/claude-preserve-scrollback.py" "$@"
-      return
-    fi
   fi
   command claude "$@"
 }
