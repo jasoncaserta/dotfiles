@@ -229,6 +229,7 @@ _prompt_tmux_restore_picker() {
 
   selected=$(printf '%s\n' "${entries[@]}" | fzf \
     --prompt='Restore tmux? > ' \
+    --header='Claude restore note: resizing the window (including opening quick terminal) will hide restored output when claude redraws' \
     --height=~$(( ${#entries[@]} + 3 )) \
     --layout=reverse \
     --delimiter=$'\t' \

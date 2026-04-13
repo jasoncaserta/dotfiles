@@ -61,6 +61,7 @@ The `codex` shell wrapper automatically passes `-c features.codex_hooks=true`. T
 tmux-resurrect directly relaunches `codex` panes after restore. `claude` panes are restored by `scripts/tmux-restore.sh`, which stages the Claude command and then focuses each Claude pane briefly before sending Enter so restored scrollback remains reachable.
 Snapshots are trimmed to the `main` session after each save so old side sessions do not bloat restore time.
 Pane contents are captured on save, so restore shows prior terminal output above a banner before starting a fresh `claude` or `codex` process.
+Resizing a restored Claude pane can still make the preserved output above the banner unreachable; this appears to be part of Claude's terminal redraw behavior rather than something tmux can reliably prevent.
 Only the last 3 autosaves and last 3 manual saves are retained, along with their matching pane-content sidecars.
 
 **tmux diagnostics**
