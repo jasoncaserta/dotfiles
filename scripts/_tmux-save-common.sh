@@ -133,6 +133,23 @@ _run_save() {
   _patch_alt_screen_pane_contents_archive
 }
 
+_snapshot_pane_archive_path() {
+  local snapshot="$1"
+  [[ -n "$snapshot" ]] || return 0
+  printf '%s\n' "${snapshot%.txt}.pane_contents.tar.gz"
+}
+
+_persist_snapshot_pane_archive() {
+  local snapshot="$1"
+  local archive="$HOME/.tmux/resurrect/pane_contents.tar.gz"
+  local snapshot_archive=''
+
+  [[ -n "$snapshot" && -f "$snapshot" && -f "$archive" ]] || return 0
+  snapshot_archive="$(_snapshot_pane_archive_path "$snapshot")"
+  [[ -n "$snapshot_archive" ]] || return 0
+  cp "$archive" "$snapshot_archive" 2>/dev/null || true
+}
+
 # Rewrite a resurrect snapshot in place so it only contains the persistent
 # session we actually restore into.
 _filter_snapshot_to_main() {

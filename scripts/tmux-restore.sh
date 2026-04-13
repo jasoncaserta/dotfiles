@@ -6,6 +6,8 @@ restore_dir="$HOME/.tmux/resurrect"
 plugin_restore="$HOME/.tmux/plugins/tmux-resurrect/scripts/restore.sh"
 tmp_restore_dir=''
 tmp_file=''
+snapshot_name=''
+pane_archive=''
 original_resurrect_dir=''
 bootstrapped_session=''
 _was_running=0
@@ -79,6 +81,13 @@ cleanup() {
 trap cleanup EXIT
 
 if [[ -f "$restore_file" ]]; then
+  if [[ -L "$restore_file" ]]; then
+    snapshot_name="$(readlink "$restore_file" 2>/dev/null || printf '')"
+  else
+    snapshot_name="${restore_file##*/}"
+  fi
+  [[ -n "$snapshot_name" ]] || snapshot_name="${restore_file##*/}"
+
   tmp_restore_dir="$(mktemp -d)"
   tmp_file="$tmp_restore_dir/last"
   awk '
@@ -93,7 +102,10 @@ if [[ -f "$restore_file" ]]; then
     { print }
   ' "$restore_file" > "$tmp_file"
 
-  if [[ -f "$restore_dir/pane_contents.tar.gz" ]]; then
+  pane_archive="$(_snapshot_pane_archive_path "$restore_dir/$snapshot_name")"
+  if [[ -f "$pane_archive" ]]; then
+    ln -sf "$pane_archive" "$tmp_restore_dir/pane_contents.tar.gz"
+  elif [[ -f "$restore_dir/pane_contents.tar.gz" ]]; then
     ln -sf "$restore_dir/pane_contents.tar.gz" "$tmp_restore_dir/pane_contents.tar.gz"
   fi
 
@@ -103,6 +115,15 @@ fi
 
 # Track whether the session was already running before restore.
 tmux has-session -t main 2>/dev/null && _was_running=1 || true
+
+if [[ "$_was_running" -eq 1 && -n "$snapshot_name" ]]; then
+  _last_restored="$(tmux show-option -gqv @dotfiles-last-restored-snapshot 2>/dev/null || printf '')"
+  if [[ "$_last_restored" == "$snapshot_name" ]]; then
+    tmux set -g @save-flash "✓ tmux snapshot already active" 2>/dev/null || true
+    ( sleep 5; tmux set -g @save-flash "" 2>/dev/null ) & disown
+    exit 0
+  fi
+fi
 
 # If the session is already up, kill any agent child processes so their pane
 # shells become free to receive the restore command we'll send after resurrect.
@@ -133,6 +154,7 @@ _run_tmux_script_quiet "$plugin_restore" "$@" \
 
 tmux set -g @save-flash "✓ tmux snapshot restored" 2>/dev/null || true
 ( sleep 5; tmux set -g @save-flash "" 2>/dev/null ) & disown
+[[ -n "$snapshot_name" ]] && tmux set-option -gq @dotfiles-last-restored-snapshot "$snapshot_name" 2>/dev/null || true
 
 # When the session was already running, resurrect marks existing panes as
 # "existing" and skips sending restore commands to them. Send them ourselves.
