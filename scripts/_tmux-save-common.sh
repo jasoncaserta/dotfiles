@@ -29,6 +29,13 @@ SHIM
   return "$_status"
 }
 
+_tmux_save_warn() {
+  local message="$1"
+  if [[ "${TMUX_SAVE_DEBUG:-0}" == "1" ]]; then
+    printf 'tmux-save warning: %s\n' "$message" >&2
+  fi
+}
+
 _sanitize_restore_dump() {
   perl -ne 'print unless /tmux-restore-agent-session\.sh(?:["[:space:]]+)(?:codex|claude)\b|TMUX_RESTORE_KEEP_NAME=1[[:space:]]+(?:codex|claude)\b|DOTFILES_RESTORE=1[[:space:]]+(?:codex|claude)\b/'
 }
@@ -82,6 +89,7 @@ _patch_alt_screen_pane_contents_archive() {
   tmpdir=$(mktemp -d) || return 0
 
   if ! tar -xzf "$archive" -C "$tmpdir" 2>/dev/null; then
+    _tmux_save_warn "could not unpack pane contents archive: $archive"
     rm -rf "$tmpdir"
     return 0
   fi
@@ -119,6 +127,7 @@ _patch_alt_screen_pane_contents_archive() {
     cd "$tmpdir" &&
     tar cf - ./pane_contents | gzip > "${archive}.tmp"
   ) 2>/dev/null || {
+    _tmux_save_warn "could not repack pane contents archive: $archive"
     rm -f "${archive}.tmp"
     rm -rf "$tmpdir"
     return 0

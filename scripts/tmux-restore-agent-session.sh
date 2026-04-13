@@ -27,7 +27,8 @@ _wait_for_client() {
   _sess=$(tmux display-message -p '#{session_name}' 2>/dev/null || printf 'main')
   until tmux list-clients -t "$_sess" 2>/dev/null | grep -q .; do
     sleep 0.1
-    (( ++_waited >= 100 )) && break
+    _waited=$(( _waited + 1 ))
+    (( _waited >= 100 )) && break
   done
 }
 

@@ -22,20 +22,6 @@ _restore_agent_command() {
   esac
 }
 
-_snapshot_agent_kind() {
-  local pane_cmd="$1"
-  local pane_title="$2"
-  local window_name="$3"
-  case "$pane_cmd:$pane_title:$window_name" in
-    claude:*|*:"✳ Claude Code":*|*:*:claude*)
-      printf '%s\n' 'claude'
-      ;;
-    codex:*|codex-aarch64-a:*|*:*:codex*)
-      printf '%s\n' 'codex'
-      ;;
-  esac
-}
-
 _live_agent_kind() {
   local pane_target="$1"
   local pane_cmd pane_title window_name
@@ -55,6 +41,9 @@ _wait_for_shell_and_stable_size() {
   local max_wait_ticks="${2:-120}"
   local waited=0 pane_cmd='' size='' stable_size='' stable_count=0
 
+  # Poll every 100 ms and require 4 consecutive identical size samples before
+  # launching Claude. This effectively waits for ~400 ms of stable geometry so
+  # we don't start the TUI while tmux is still resizing the restored pane.
   while (( waited < max_wait_ticks )); do
     pane_cmd="$(tmux display-message -p -t "$pane_target" '#{pane_current_command}' 2>/dev/null || printf '')"
     case "$pane_cmd" in

@@ -400,6 +400,8 @@ if command -v tmux >/dev/null 2>&1; then
   case $- in
     *i*)
       if [ -z "$TMUX" ] && [ "${TERM_PROGRAM:-}" = "ghostty" ] && [ -z "${NO_AUTO_TMUX:-}" ]; then
+        # Keep this aligned with Ghostty's default working-directory so fresh
+        # auto-started tmux sessions land in the same place.
         _TMUX_DEFAULT_DIR="$HOME/Projects"
         if ! tmux list-sessions >/dev/null 2>&1; then
           local TMUX_RESTORE_FILE=''

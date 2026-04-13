@@ -70,6 +70,7 @@
     }
   },
   "_disabledMcpServers": {
+    "_comment": "Codex-side plugin/MCP integrations are intentionally parked here instead of deleted so they are easy to re-enable later without Claude loading them by default.",
     "browser-tools": {
       "command": "npx",
       "args": [

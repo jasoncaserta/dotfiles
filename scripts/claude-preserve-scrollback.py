@@ -19,6 +19,8 @@ DEBUG_LOG = "/tmp/claude-preserve-scrollback.log"
 
 
 def log_debug(message: str) -> None:
+    if os.environ.get("CLAUDE_SCROLLBACK_DEBUG") != "1":
+        return
     try:
         with open(DEBUG_LOG, "a", encoding="utf-8") as fh:
             fh.write(f"{datetime.now().isoformat(timespec='milliseconds')} {message}\n")
