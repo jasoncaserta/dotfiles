@@ -85,6 +85,9 @@ _tmux_rename_preexec() {
 
 _tmux_rename_precmd() {
   if [[ -n "${TMUX_PANE:-}" ]] && command -v tmux >/dev/null 2>&1; then
+    if _tmux_should_preserve_custom_name; then
+      return 0
+    fi
     tmux rename-window -t "${TMUX_PANE}" "zsh" 2>/dev/null
   fi
 }
@@ -92,7 +95,9 @@ _tmux_rename_precmd() {
 _tmux_should_preserve_custom_name() {
   local current_name=''
   [[ -n "${TMUX_PANE:-}" ]] && command -v tmux >/dev/null 2>&1 || return 1
-  [[ -n "${TMUX_RESTORE_KEEP_NAME:-}${DOTFILES_RESTORE:-}" ]] || return 1
+  [[ -n "${TMUX_RESTORE_KEEP_NAME:-}${DOTFILES_RESTORE:-}" ]] || \
+    [[ "$(tmux show-window-options -v -t "${TMUX_PANE}" @dotfiles_restore_keep_name 2>/dev/null || printf '')" == "1" ]] || \
+    return 1
   current_name=$(tmux display-message -p -t "${TMUX_PANE}" '#{window_name}' 2>/dev/null || printf '')
   case "$current_name" in
     ''|zsh|bash)
@@ -155,7 +160,7 @@ add-zsh-hook precmd _tmux_rename_precmd
 claude() {
   local pane="$TMUX_PANE"
   local _dotfiles=''
-  if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1 && ! _tmux_should_preserve_custom_name; then
+  if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1 && [[ -z "${DOTFILES_RESTORE:-}" ]] && ! _tmux_should_preserve_custom_name; then
     tmux rename-window -t "$pane" "claude" 2>/dev/null
   fi
   if [[ -n "${DOTFILES_RESTORE:-}" ]]; then
@@ -171,7 +176,7 @@ claude() {
 
 codex() {
   local pane="$TMUX_PANE"
-  if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1 && ! _tmux_should_preserve_custom_name; then
+  if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1 && [[ -z "${DOTFILES_RESTORE:-}" ]] && ! _tmux_should_preserve_custom_name; then
     tmux rename-window -t "$pane" "codex" 2>/dev/null
   fi
   _tmux_prepare_restore_agent_launch 1

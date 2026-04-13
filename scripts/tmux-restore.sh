@@ -185,6 +185,15 @@ tmux set -g @save-flash "✓ tmux snapshot restored" 2>/dev/null || true
 ( sleep 5; tmux set -g @save-flash "" 2>/dev/null ) & disown
 [[ -n "$snapshot_name" ]] && tmux set-option -gq @dotfiles-last-restored-snapshot "$snapshot_name" 2>/dev/null || true
 
+# Mark restored windows so zsh rename hooks preserve their restored custom
+# names before DOTFILES_RESTORE-prefixed agent commands are sent.
+if [[ -n "$tmp_file" && -f "$tmp_file" ]]; then
+  while IFS=$'\t' read -r _lt _sess _win _wname _rest; do
+    tmux set-window-option -q -t "${_sess}:${_win}" @dotfiles_restore_keep_name 1 2>/dev/null || true
+  done < <(awk 'BEGIN { FS="\t" } /^window\t/ { print $1 "\t" $2 "\t" $3 "\t" $4 }' "$tmp_file")
+  unset _lt _sess _win _wname _rest
+fi
+
 # When the session was already running, resurrect marks existing panes as
 # "existing" and skips sending restore commands to them. Send them ourselves.
 if [[ "$_was_running" -eq 1 && -n "$tmp_file" && -f "$tmp_file" ]]; then
