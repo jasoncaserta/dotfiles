@@ -33,12 +33,43 @@ _sanitize_restore_dump() {
   perl -ne 'print unless /tmux-restore-agent-session\.sh(?:["[:space:]]+)(?:codex|claude)\b|TMUX_RESTORE_KEEP_NAME=1[[:space:]]+(?:codex|claude)\b|DOTFILES_RESTORE=1[[:space:]]+(?:codex|claude)\b/'
 }
 
-_normalize_restore_dump() {
+_strip_restore_banner_only() {
   RESTORE_BANNER_TEXT='Restored pane output above; new session starts below' perl -0pe '
     my $banner = $ENV{RESTORE_BANNER_TEXT};
-    s/(?:\e\[[0-9;]*m)*[^\n]*\Q$banner\E[^\n]*\n?.*\z//s;
+    s/(?:\e\[[0-9;]*m)*[^\n]*\Q$banner\E[^\n]*\n?/\n/sg;
     s/\s*\z//s;
   '
+}
+
+_snapshot_agent_kind() {
+  local pane_cmd="$1"
+  local pane_title="$2"
+  local window_name="$3"
+  case "$pane_cmd:$pane_title:$window_name" in
+    claude:*|*:"✳ Claude Code":*|*:*:claude*)
+      printf '%s\n' 'claude'
+      ;;
+    codex:*|codex-aarch64-a:*|*:*:codex*)
+      printf '%s\n' 'codex'
+      ;;
+  esac
+}
+
+_merge_restore_dumps() {
+  local merged='' part=''
+  for part in "$@"; do
+    [[ -n "$part" ]] || continue
+    if [[ -z "$merged" ]]; then
+      merged="$part"
+    elif [[ "$merged" == *"$part"* ]]; then
+      continue
+    elif [[ "$part" == *"$merged"* ]]; then
+      merged="$part"
+    else
+      merged+=$'\n\n'"$part"
+    fi
+  done
+  printf '%s' "$merged"
 }
 
 _patch_alt_screen_pane_contents_archive() {
@@ -55,36 +86,29 @@ _patch_alt_screen_pane_contents_archive() {
     return 0
   fi
 
-  local pane_id pane_cmd alt_on pane_title window_name pane_file pane_dump agent_kind
+  local pane_id pane_cmd alt_on pane_title window_name pane_file pane_dump primary_dump alt_dump agent_kind
   while IFS=$'\t' read -r pane_id pane_cmd alt_on pane_title window_name; do
     pane_file="$tmpdir/pane_contents/pane-${pane_id}"
-    agent_kind=''
-    case "$pane_cmd:$pane_title:$window_name" in
-      claude:*|*:"✳ Claude Code":*|*:*:claude*)
-        agent_kind='claude'
-        ;;
-      codex:*|codex-aarch64-a:*|*:*:codex*)
-        agent_kind='codex'
-        ;;
-    esac
+    agent_kind="$(_snapshot_agent_kind "$pane_cmd" "$pane_title" "$window_name")"
     case "$agent_kind" in
-      claude)
+      claude|codex)
         mkdir -p "$(dirname "$pane_file")"
-        pane_dump=''
-        if [[ "$alt_on" == "1" ]]; then
-          pane_dump="$(tmux capture-pane -aepJ -t "$pane_id" 2>/dev/null || printf '')"
-        fi
-        if [[ -z "$pane_dump" && -f "$pane_file" ]]; then
-          pane_dump="$(cat "$pane_file" 2>/dev/null || printf '')"
-        fi
-        pane_dump="$(printf '%s' "$pane_dump" | _sanitize_restore_dump | _normalize_restore_dump)"
-        [[ -n "$pane_dump" ]] || continue
-        printf '%s\n\n%s\n' "$pane_dump" "$restore_banner" > "$pane_file"
-        ;;
-      codex)
-        [[ -f "$pane_file" ]] || continue
-        pane_dump="$(cat "$pane_file" 2>/dev/null || printf '')"
-        pane_dump="$(printf '%s' "$pane_dump" | _sanitize_restore_dump | _normalize_restore_dump)"
+        primary_dump="$(tmux capture-pane -epJS -1000 -t "$pane_id" 2>/dev/null || printf '')"
+        alt_dump=''
+
+        case "$agent_kind" in
+          claude)
+            pane_dump="$primary_dump"
+            ;;
+          codex)
+            if [[ "$alt_on" == "1" ]]; then
+              alt_dump="$(tmux capture-pane -aepJ -t "$pane_id" 2>/dev/null || printf '')"
+            fi
+            pane_dump="$(_merge_restore_dumps "$primary_dump" "$alt_dump")"
+            ;;
+        esac
+
+        pane_dump="$(printf '%s' "$pane_dump" | _sanitize_restore_dump | _strip_restore_banner_only)"
         [[ -n "$pane_dump" ]] || continue
         printf '%s\n\n%s\n' "$pane_dump" "$restore_banner" > "$pane_file"
         ;;
