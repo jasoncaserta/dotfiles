@@ -177,6 +177,17 @@ codex() {
   command codex -c features.codex_hooks=true "$@"
 }
 
+gemini() {
+  local pane="$TMUX_PANE"
+  if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1 && [[ -z "${DOTFILES_RESTORE:-}" ]] && ! _tmux_should_preserve_custom_name; then
+    tmux rename-window -t "$pane" "gemini" 2>/dev/null
+  fi
+  if [[ -n "${DOTFILES_RESTORE:-}" ]]; then
+    _tmux_prepare_restore_agent_launch 1 1
+  fi
+  command gemini "$@"
+}
+
 _prompt_tmux_restore_picker() {
   setopt local_options no_monitor
   local resurrect_dir="$HOME/.tmux/resurrect"

@@ -173,6 +173,9 @@ if [[ "$role" == leader ]]; then
   link "$DOTFILES/codex/config.toml"      "$HOME/.codex/config.toml"
   link "$DOTFILES/codex/rules"            "$HOME/.codex/rules"
   link "$DOTFILES/codex/AGENTS.md"        "$HOME/AGENTS.md"
+  link "$DOTFILES/gemini/settings.json"   "$HOME/.gemini/settings.json"
+  link "$DOTFILES/gemini/GEMINI.md"       "$HOME/.gemini/GEMINI.md"
+  link "$DOTFILES/gemini/policies"        "$HOME/.gemini/policies"
   link "$DOTFILES/zsh/p10k.zsh"           "$HOME/.p10k.zsh"
   chmod +x "$DOTFILES/scripts/notify.sh"
 
@@ -195,6 +198,9 @@ else
   merge_hooks_json "$DOTFILES/claude/settings.json" "$HOME/.claude/settings.json"
   merge_hooks_json "$DOTFILES/codex/hooks.json"     "$HOME/.codex/hooks.json"
   link "$DOTFILES/codex/AGENTS.md"        "$HOME/AGENTS.md"
+  link "$DOTFILES/gemini/GEMINI.md"       "$HOME/.gemini/GEMINI.md"
+  merge_hooks_json "$DOTFILES/gemini/settings.json" "$HOME/.gemini/settings.json"
+  link "$DOTFILES/gemini/policies"        "$HOME/.gemini/policies"
   # config.toml has machine-specific paths (MCP servers, project trust levels) — skip on follower
 fi
 

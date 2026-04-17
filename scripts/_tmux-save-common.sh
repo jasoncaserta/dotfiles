@@ -37,7 +37,7 @@ _tmux_save_warn() {
 }
 
 _sanitize_restore_dump() {
-  perl -ne 'print unless /tmux-restore-agent-session\.sh(?:["[:space:]]+)(?:codex|claude)\b|TMUX_RESTORE_KEEP_NAME=1[[:space:]]+(?:codex|claude)\b|DOTFILES_RESTORE=1[[:space:]]+(?:codex|claude)\b/'
+  perl -ne 'print unless /tmux-restore-agent-session\.sh(?:["[:space:]]+)(?:codex|claude|gemini)\b|TMUX_RESTORE_KEEP_NAME=1[[:space:]]+(?:codex|claude|gemini)\b|DOTFILES_RESTORE=1[[:space:]]+(?:codex|claude|gemini)\b/'
 }
 
 _strip_restore_banner_only() {
@@ -58,6 +58,9 @@ _snapshot_agent_kind() {
       ;;
     codex:*|codex-aarch64-a:*|*:*:codex*)
       printf '%s\n' 'codex'
+      ;;
+    gemini:*|*:*:gemini*)
+      printf '%s\n' 'gemini'
       ;;
   esac
 }
@@ -99,13 +102,13 @@ _patch_alt_screen_pane_contents_archive() {
     pane_file="$tmpdir/pane_contents/pane-${pane_id}"
     agent_kind="$(_snapshot_agent_kind "$pane_cmd" "$pane_title" "$window_name")"
     case "$agent_kind" in
-      claude|codex)
+      claude|codex|gemini)
         mkdir -p "$(dirname "$pane_file")"
         primary_dump="$(tmux capture-pane -epJS -1000 -t "$pane_id" 2>/dev/null || printf '')"
         alt_dump=''
 
         case "$agent_kind" in
-          claude)
+          claude|gemini)
             pane_dump="$primary_dump"
             ;;
           codex)
@@ -174,6 +177,9 @@ _filter_snapshot_to_main() {
       if ($7 == "✳ Claude Code" || $10 == "claude" || $11 ~ /claude-preserve-scrollback\.py/) {
         $10 = "claude"
         $11 = ":claude"
+      } else if ($10 == "gemini") {
+        $10 = "gemini"
+        $11 = ":gemini"
       }
       print
       next
