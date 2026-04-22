@@ -20,7 +20,10 @@ trust_level = "trusted"
 [projects."/Users/jasoncaserta/Projects/Retro Radio"]
 trust_level = "trusted"
 
-[projects."/Users/jasoncaserta/sandbox/ai-pace"]
+[projects."/Users/jasoncaserta/Projects/ai-pace"]
+trust_level = "trusted"
+
+[projects."/Users/jasoncaserta/Projects/sys-design-sim"]
 trust_level = "trusted"
 
 [notice.model_migrations]
