@@ -2,8 +2,12 @@
   "hooks": {
     "AfterAgent": [
       {
-        "type": "command",
-        "command": "[ -n \"$TMUX_PANE\" ] && { printf '\\a'; $HOME/.notify.sh \"Gemini\" \"done!\" \"$TMUX_PANE\"; } || true"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -n \"$TMUX_PANE\" ] && { printf '\\a'; $HOME/.notify.sh \"Gemini\" \"done!\" \"$TMUX_PANE\"; } || true"
+          }
+        ]
       }
     ],
     "BeforeTool": [
@@ -19,8 +23,13 @@
     ],
     "Notification": [
       {
-        "type": "command",
-        "command": "[ -n \"$TMUX_PANE\" ] && { printf '\\a'; $HOME/.notify.sh \"Gemini\" \"needs attention\" \"$TMUX_PANE\"; } || true"
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -n \"$TMUX_PANE\" ] && { printf '\\a'; $HOME/.notify.sh \"Gemini\" \"needs approval\" \"$TMUX_PANE\"; } || true"
+          }
+        ]
       }
     ]
   },

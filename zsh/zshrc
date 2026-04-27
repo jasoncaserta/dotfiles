@@ -152,8 +152,15 @@ _tmux_prepare_restore_agent_launch() {
   fi
 }
 
+_tmux_clear_attention_preexec() {
+  [[ -n "${TMUX_PANE:-}" ]] && command -v tmux >/dev/null 2>&1 || return 0
+  tmux set-option -wu -t "${TMUX_PANE}" @needs_attention 2>/dev/null || true
+  tmux refresh-client -S 2>/dev/null || true
+}
+
 add-zsh-hook preexec _terminal_alert_preexec
 add-zsh-hook preexec _tmux_rename_preexec
+add-zsh-hook preexec _tmux_clear_attention_preexec
 add-zsh-hook precmd _terminal_alert_precmd
 add-zsh-hook precmd _tmux_rename_precmd
 
