@@ -486,3 +486,11 @@ fi
 
 # zoxide as cd. Keep this at the end of the shell configuration.
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh --cmd cd)"
+
+# pnpm
+export PNPM_HOME="/Users/jasoncaserta/Library/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+# pnpm end

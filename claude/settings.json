@@ -4,7 +4,6 @@
     "pr": ""
   },
   "includeCoAuthoredBy": false,
-  "model": "opus",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -80,6 +79,7 @@
       }
     }
   },
+  "effortLevel": "high",
   "preferredNotifChannel": "terminal_bell",
   "_disabledMcpServers": {
     "_comment": "Codex-side plugin/MCP integrations are intentionally parked here instead of deleted so they are easy to re-enable later without Claude loading them by default.",
@@ -96,6 +96,5 @@
       ]
     }
   },
-  "mcpServers": {},
-  "effortLevel": "xhigh"
+  "mcpServers": {}
 }
