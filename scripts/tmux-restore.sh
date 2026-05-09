@@ -20,6 +20,7 @@ _restore_agent_command() {
   case "$1" in
     claude) printf '%s\n' 'DOTFILES_RESTORE=1 claude' ;;
     codex)  printf '%s\n' 'DOTFILES_RESTORE=1 codex' ;;
+    gemini) printf '%s\n' 'DOTFILES_RESTORE=1 gemini' ;;
   esac
 }
 
@@ -60,7 +61,7 @@ _wait_for_shell_and_stable_size() {
           return 0
         fi
         ;;
-      codex*|claude*|python*|Python)
+      codex*|claude*|gemini*|python*|Python)
         return 1
         ;;
       *)
@@ -216,7 +217,7 @@ fi
 if [[ "$_was_running" -eq 1 && -n "$tmp_file" && -f "$tmp_file" ]]; then
   while IFS=$'\t' read -r _lt _sess _win _wa _wf _pi _pt _dir _pa _pcmd _pfull; do
     case "${_pfull#:}" in
-      codex*|claude*)
+      codex*|claude*|gemini*)
         _pane_pid="$(tmux display-message -p -t "${_sess}:${_win}.${_pi}" '#{pane_pid}' 2>/dev/null || printf '')"
         [[ -n "$_pane_pid" ]] && pkill -P "$_pane_pid" 2>/dev/null || true
         ;;
@@ -259,7 +260,7 @@ if [[ "$_was_running" -eq 1 && -n "$tmp_file" && -f "$tmp_file" ]]; then
     # agent through the user's normal shell wrapper.
     _pane_target="${_sess}:${_win}.${_pi}"
     tmux set-option -pt "$_pane_target" scroll-on-clear on 2>/dev/null || true
-    if [[ "$_agent" == "claude" ]]; then
+    if [[ "$_agent" == "claude" || "$_agent" == "gemini" ]]; then
       tmux set-option -pt "$_pane_target" alternate-screen off 2>/dev/null || true
       if _wait_for_shell_and_stable_size "$_pane_target" 120; then
         _restore_cmd="$(_restore_agent_command "$_agent")"
@@ -280,7 +281,7 @@ if [[ "$_was_running" -eq 1 && -n "$tmp_file" && -f "$tmp_file" ]]; then
             tmux send-keys -t "$_pane_target" "$_restore_cmd" Enter 2>/dev/null || true
             break
             ;;
-          codex*|claude*)
+          codex*|claude*|gemini*)
             break  # agent already running
             ;;
         esac
@@ -300,7 +301,7 @@ if [[ "$_was_running" -eq 0 && -n "$tmp_file" && -f "$tmp_file" ]]; then
     [[ -n "$_agent" ]] || continue
     _pane_target="${_sess}:${_win}.${_pi}"
     tmux set-option -pt "$_pane_target" scroll-on-clear on 2>/dev/null || true
-    if [[ "$_agent" == "claude" ]]; then
+    if [[ "$_agent" == "claude" || "$_agent" == "gemini" ]]; then
       tmux set-option -pt "$_pane_target" alternate-screen off 2>/dev/null || true
       if _wait_for_shell_and_stable_size "$_pane_target" 160; then
         _restore_cmd="$(_restore_agent_command "$_agent")"
@@ -319,7 +320,7 @@ if [[ "$_was_running" -eq 0 && -n "$tmp_file" && -f "$tmp_file" ]]; then
         fi
         _pane_cmd="$(tmux display-message -p -t "$_pane_target" '#{pane_current_command}' 2>/dev/null || printf '')"
         case "$_pane_cmd" in
-          codex*|claude*|python*|Python)
+          codex*|claude*|gemini*|python*|Python)
             if [[ "$(_live_agent_kind "$_pane_target")" == "$_agent" ]]; then
               break
             fi

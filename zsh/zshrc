@@ -152,8 +152,15 @@ _tmux_prepare_restore_agent_launch() {
   fi
 }
 
+_tmux_clear_attention_preexec() {
+  [[ -n "${TMUX_PANE:-}" ]] && command -v tmux >/dev/null 2>&1 || return 0
+  tmux set-option -wu -t "${TMUX_PANE}" @needs_attention 2>/dev/null || true
+  tmux refresh-client -S 2>/dev/null || true
+}
+
 add-zsh-hook preexec _terminal_alert_preexec
 add-zsh-hook preexec _tmux_rename_preexec
+add-zsh-hook preexec _tmux_clear_attention_preexec
 add-zsh-hook precmd _terminal_alert_precmd
 add-zsh-hook precmd _tmux_rename_precmd
 
@@ -175,6 +182,17 @@ codex() {
   fi
   _tmux_prepare_restore_agent_launch 1
   command codex -c features.codex_hooks=true "$@"
+}
+
+gemini() {
+  local pane="$TMUX_PANE"
+  if [[ -n "$pane" ]] && command -v tmux >/dev/null 2>&1 && [[ -z "${DOTFILES_RESTORE:-}" ]] && ! _tmux_should_preserve_custom_name; then
+    tmux rename-window -t "$pane" "gemini" 2>/dev/null
+  fi
+  if [[ -n "${DOTFILES_RESTORE:-}" ]]; then
+    _tmux_prepare_restore_agent_launch 1 1
+  fi
+  command gemini "$@"
 }
 
 _prompt_tmux_restore_picker() {
@@ -468,3 +486,11 @@ fi
 
 # zoxide as cd. Keep this at the end of the shell configuration.
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh --cmd cd)"
+
+# pnpm
+export PNPM_HOME="/Users/jasoncaserta/Library/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+# pnpm end

@@ -1,4 +1,5 @@
-model = "gpt-5.4"
+model = "gpt-5.5"
+model_reasoning_effort = "medium"
 
 [features]
 codex_hooks = true
@@ -20,7 +21,13 @@ trust_level = "trusted"
 [projects."/Users/jasoncaserta/Projects/Retro Radio"]
 trust_level = "trusted"
 
-[projects."/Users/jasoncaserta/sandbox/ai-pace"]
+[projects."/Users/jasoncaserta/Projects/ai-pace"]
+trust_level = "trusted"
+
+[projects."/Users/jasoncaserta/Projects/sys-design-sim"]
+trust_level = "trusted"
+
+[projects."/Users/jasoncaserta/Projects/jasonecaserta-com"]
 trust_level = "trusted"
 
 [notice.model_migrations]
@@ -28,6 +35,34 @@ trust_level = "trusted"
 
 [plugins."github@openai-curated"]
 enabled = true
+
+[plugins."browser-use@openai-bundled"]
+enabled = true
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[plugins."computer-use@openai-bundled"]
+enabled = true
+
+[plugins."google-calendar@openai-curated"]
+enabled = true
+
+[marketplaces.openai-bundled]
+last_updated = "2026-05-06T19:44:39Z"
+source_type = "local"
+source = "/Users/jasoncaserta/.codex/.tmp/bundled-marketplaces/openai-bundled"
+
+[marketplaces.openai-primary-runtime]
+last_updated = "2026-05-06T19:45:15Z"
+source_type = "local"
+source = "/Users/jasoncaserta/.cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime"
 
 # Disabled MCP servers. Uncomment to re-enable.
 #

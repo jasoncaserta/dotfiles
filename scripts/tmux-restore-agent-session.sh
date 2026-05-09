@@ -56,6 +56,16 @@ case "$agent_bin" in
     _wait_for_client
     exec claude
     ;;
+  gemini)
+    printf '\n'
+    # Match the Codex restore presentation exactly.
+    printf '\033[0m\033[39m\033[49m\033[2J\033[H'
+    printf '\033[0m\033[1;38;5;34m%s\033[0m\n' "$restore_banner"
+    printf '\n'
+    export TMUX_RESTORE_KEEP_NAME=1
+    _wait_for_client
+    exec gemini
+    ;;
 esac
 
 exec "$@"

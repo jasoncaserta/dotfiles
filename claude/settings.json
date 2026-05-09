@@ -5,6 +5,16 @@
   },
   "includeCoAuthoredBy": false,
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -n \"$TMUX_PANE\" ] && tmux set-option -wu -t \"$TMUX_PANE\" @needs_attention 2>/dev/null; tmux refresh-client -S 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "AskUserQuestion",
@@ -12,6 +22,16 @@
           {
             "type": "command",
             "command": "[ -n \"$TMUX_PANE\" ] && { printf '\\a'; $HOME/.notify.sh \"Claude\" \"needs attention\" \"$TMUX_PANE\"; } || true"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -n \"$TMUX_PANE\" ] && tmux set-option -wu -t \"$TMUX_PANE\" @needs_attention 2>/dev/null; tmux refresh-client -S 2>/dev/null || true"
           }
         ]
       }
@@ -69,6 +89,8 @@
       }
     }
   },
+  "effortLevel": "high",
+  "preferredNotifChannel": "terminal_bell",
   "_disabledMcpServers": {
     "_comment": "Codex-side plugin/MCP integrations are intentionally parked here instead of deleted so they are easy to re-enable later without Claude loading them by default.",
     "browser-tools": {
@@ -84,6 +106,5 @@
       ]
     }
   },
-  "mcpServers": {},
-  "preferredNotifChannel": "terminal_bell"
+  "mcpServers": {}
 }
