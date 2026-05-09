@@ -6,6 +6,7 @@
 TITLE="${1:-Notification}"
 MESSAGE="${2:-needs attention}"
 TARGET="${3:-}"
+PANE_ID="${3:-}"   # saved before TARGET is rewritten to session:window form
 
 # Normalize TARGET to session:window format for tmux switch-client
 if [[ -n "$TARGET" ]] && command -v tmux >/dev/null 2>&1; then
@@ -25,6 +26,33 @@ if [[ -n "$TARGET" ]] && command -v tmux >/dev/null 2>&1; then
     tmux set-option -wq -t "$TARGET" @needs_attention 1 2>/dev/null
     if tmux list-clients >/dev/null 2>&1 && [[ -n "$(tmux list-clients 2>/dev/null)" ]]; then
         tmux refresh-client -S 2>/dev/null
+    fi
+
+    # Arm input watcher: clears @needs_attention the moment the user presses
+    # any key (which causes the TUI to produce output that pipe-pane detects).
+    # The 0.8s delay lets the TUI finish its own post-completion rendering so
+    # we don't trigger on the agent's output rather than the user's keypress.
+    _dotfiles_dir=$(cat "$HOME/.config/dotfiles/path" 2>/dev/null || echo '')
+    _clear_script="$_dotfiles_dir/scripts/tmux-clear-on-input.sh"
+    _tmux_socket="${TMUX%%,*}"   # extract socket path from $TMUX env var
+    if [[ -x "$_clear_script" && -n "$_tmux_socket" ]]; then
+        # Resolve pane ID and window ID — caller may pass %pane or @window.
+        _pane_id=""
+        _win_id=""
+        if [[ "$PANE_ID" == %* ]]; then
+            _pane_id="$PANE_ID"
+            _win_id=$(tmux display-message -p -t "$PANE_ID" '#{window_id}' 2>/dev/null || echo '')
+        elif [[ -n "$TARGET" ]]; then
+            _win_id=$(tmux display-message -p -t "$TARGET" '#{window_id}' 2>/dev/null || echo '')
+            _pane_id=$(tmux display-message -p -t "$TARGET" '#{pane_id}' 2>/dev/null || echo '')
+        fi
+        if [[ -n "$_pane_id" && -n "$_win_id" ]]; then
+            (sleep 0.8
+             tmux -S "$_tmux_socket" pipe-pane -t "$_pane_id" 2>/dev/null
+             tmux -S "$_tmux_socket" pipe-pane -t "$_pane_id" \
+               "\"$_clear_script\" \"$_win_id\" \"$_tmux_socket\"" 2>/dev/null
+            ) >/dev/null 2>&1 &
+        fi
     fi
 fi
 

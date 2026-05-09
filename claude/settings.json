@@ -26,6 +26,16 @@
         ]
       }
     ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -n \"$TMUX_PANE\" ] && tmux set-option -wu -t \"$TMUX_PANE\" @needs_attention 2>/dev/null; tmux refresh-client -S 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

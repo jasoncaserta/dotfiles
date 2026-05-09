@@ -1,11 +1,31 @@
 {
   "hooks": {
+    "UserPrompt": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -n \"$TMUX_PANE\" ] && tmux set-option -wu -t \"$TMUX_PANE\" @needs_attention 2>/dev/null; tmux refresh-client -S 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
     "AfterAgent": [
       {
         "hooks": [
           {
             "type": "command",
             "command": "[ -n \"$TMUX_PANE\" ] && { printf '\\a'; $HOME/.notify.sh \"Gemini\" \"done!\" \"$TMUX_PANE\"; } || true"
+          }
+        ]
+      }
+    ],
+    "AfterTool": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -n \"$TMUX_PANE\" ] && tmux set-option -wu -t \"$TMUX_PANE\" @needs_attention 2>/dev/null; tmux refresh-client -S 2>/dev/null || true"
           }
         ]
       }
