@@ -40,11 +40,11 @@ They send notifications when they need attention, finish a turn, or hit a rate/t
 
 | Trigger | Claude | Codex | Gemini |
 |---------|--------|-------|--------|
-| Turn done | ✓ hook (`Stop`) | ✓ hook (`Stop`) | ✓ hook (`SessionEnd`) |
+| Turn done | ✓ hook (`Stop`) | ✓ hook (`Stop`) | ✓ hook (`AfterAgent`) |
 | Asks a question | ✓ hook (`PreToolUse`) | ✓ stateful polling | ✓ hook (`BeforeTool`) |
-| Permission prompt | ✓ hook (`PermissionRequest`) | ✓ stateful polling | ✓ hook (`BeforeTool`) |
-| Elicitation / MCP | ✓ hook (`Elicitation`) | ✗ | ✓ hook |
-| Rate / token limit | ✓ hook (`StopFailure`) | ✓ stateful polling | ✓ (handled via `SessionEnd`) |
+| Permission prompt | ✓ hook (`PermissionRequest`) | ✓ stateful polling | ✓ hook (`Notification`) |
+| Elicitation / MCP | ✓ hook (`Elicitation`) | ✗ | ✓ hook (`Notification`) |
+| Rate / token limit | ✓ hook (`StopFailure`) | ✓ stateful polling | ✓ (handled via `AfterAgent`) |
 
 Claude's `StopFailure` hook fires on any API error (rate limit, token limit, billing, etc.) and sends **"hit an error :("**. Codex detects limits via a stateful tmux-pane watcher and sends **"ran out of tokens :("** only on new blocking states.
 

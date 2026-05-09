@@ -54,9 +54,6 @@ enabled = true
 [plugins."google-calendar@openai-curated"]
 enabled = true
 
-[tui.model_availability_nux]
-"gpt-5.5" = 4
-
 [marketplaces.openai-bundled]
 last_updated = "2026-05-06T19:44:39Z"
 source_type = "local"
