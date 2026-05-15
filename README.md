@@ -48,7 +48,7 @@ They send notifications when they need attention, finish a turn, or hit a rate/t
 
 Claude's `StopFailure` hook fires on any API error (rate limit, token limit, billing, etc.) and sends **"hit an error :("**. Codex detects limits via a stateful tmux-pane watcher and sends **"ran out of tokens :("** only on new blocking states.
 
-The `codex` shell wrapper automatically passes `-c features.codex_hooks=true`. The installer sets up all AI tooling config:
+The `codex` shell wrapper automatically passes `-c features.hooks=true`. The installer sets up all AI tooling config:
 
 | File | Symlink target | Notes |
 |------|---------------|-------|

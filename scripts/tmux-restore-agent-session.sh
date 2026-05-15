@@ -44,7 +44,7 @@ case "$agent_bin" in
     printf '\n'
     export TMUX_RESTORE_KEEP_NAME=1
     _wait_for_client
-    exec codex -c features.codex_hooks=true
+    exec codex -c features.hooks=true
     ;;
   claude)
     printf '\n'

@@ -1,8 +1,10 @@
 model = "gpt-5.5"
 model_reasoning_effort = "medium"
 
+notify = ["/Users/jasoncaserta/.codex/plugins/cache/openai-bundled/computer-use/1.0.770/Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient", "turn-ended"]
+
 [features]
-codex_hooks = true
+hooks = true
 [projects."/Users/jasoncaserta/Projects"]
 trust_level = "trusted"
 
@@ -28,6 +30,9 @@ trust_level = "trusted"
 trust_level = "trusted"
 
 [projects."/Users/jasoncaserta/Projects/jasonecaserta-com"]
+trust_level = "trusted"
+
+[projects."/Users/jasoncaserta/Projects/100games"]
 trust_level = "trusted"
 
 [notice.model_migrations]
@@ -63,6 +68,21 @@ source = "/Users/jasoncaserta/.codex/.tmp/bundled-marketplaces/openai-bundled"
 last_updated = "2026-05-06T19:45:15Z"
 source_type = "local"
 source = "/Users/jasoncaserta/.cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime"
+
+[tui.model_availability_nux]
+"gpt-5.5" = 4
+
+[hooks.state]
+
+[hooks.state."/Users/jasoncaserta/.codex/hooks.json:permission_request:0:0"]
+enabled = true
+trusted_hash = "sha256:85cb19c7e71410de23ae79290790d48c54949344f18c9bb9b98e217c7dbebfed"
+
+[hooks.state."/Users/jasoncaserta/.codex/hooks.json:stop:0:0"]
+trusted_hash = "sha256:2bab40e98b19ab4ae0f7b645303ca69205e06552f1ce8b16e88dc3389a3750c2"
+
+[hooks.state."/Users/jasoncaserta/.codex/hooks.json:user_prompt_submit:0:0"]
+trusted_hash = "sha256:8d1b705189d3de3f397638095949827adabfbaaf1eda8b1d230f0f1b288123c7"
 
 # Disabled MCP servers. Uncomment to re-enable.
 #

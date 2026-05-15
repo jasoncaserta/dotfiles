@@ -181,7 +181,7 @@ codex() {
     tmux rename-window -t "$pane" "codex" 2>/dev/null
   fi
   _tmux_prepare_restore_agent_launch 1
-  command codex -c features.codex_hooks=true "$@"
+  command codex -c features.hooks=true "$@"
 }
 
 gemini() {
