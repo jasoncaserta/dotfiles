@@ -39,6 +39,15 @@
             "command": "[ -n \"$TMUX_PANE\" ] && { printf '\\a'; $HOME/.notify.sh \"Gemini\" \"needs attention\" \"$TMUX_PANE\"; } || true"
           }
         ]
+      },
+      {
+        "matcher": "run_shell_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/jasoncaserta/.gemini/hooks/rtk-hook-gemini.sh"
+          }
+        ]
       }
     ],
     "Notification": [

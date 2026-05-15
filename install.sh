@@ -131,6 +131,7 @@ brew_install eza
 brew_install zoxide
 brew_install fzf
 brew_install jq
+brew_install rtk
 brew_install zsh-autosuggestions
 brew_install_cask ghostty
 brew_install_cask hammerspoon
@@ -168,13 +169,18 @@ if [[ "$role" == leader ]]; then
   link "$DOTFILES/git/gitignore_global"   "$HOME/.config/git/ignore"
   link "$DOTFILES/claude/settings.json"   "$HOME/.claude/settings.json"
   link "$DOTFILES/claude/CLAUDE.md"       "$HOME/.claude/CLAUDE.md"
+  link "$DOTFILES/claude/RTK.md"          "$HOME/.claude/RTK.md"
   link "$DOTFILES/claude/skills"          "$HOME/.claude/skills"
   link "$DOTFILES/codex/hooks.json"       "$HOME/.codex/hooks.json"
   link "$DOTFILES/codex/config.toml"      "$HOME/.codex/config.toml"
+  link "$DOTFILES/codex/AGENTS.md"        "$HOME/.codex/AGENTS.md"
+  link "$DOTFILES/codex/RTK.md"           "$HOME/.codex/RTK.md"
   link "$DOTFILES/codex/rules"            "$HOME/.codex/rules"
   link "$DOTFILES/codex/AGENTS.md"        "$HOME/AGENTS.md"
   link "$DOTFILES/gemini/settings.json"   "$HOME/.gemini/settings.json"
   link "$DOTFILES/gemini/GEMINI.md"       "$HOME/.gemini/GEMINI.md"
+  link "$DOTFILES/gemini/RTK.md"          "$HOME/.gemini/RTK.md"
+  link "$DOTFILES/gemini/hooks"           "$HOME/.gemini/hooks"
   link "$DOTFILES/gemini/policies"        "$HOME/.gemini/policies"
   link "$DOTFILES/zsh/p10k.zsh"           "$HOME/.p10k.zsh"
   chmod +x "$DOTFILES/scripts/notify.sh"
@@ -195,10 +201,15 @@ else
   link "$DOTFILES/zsh/p10k.zsh"           "$HOME/.p10k.zsh"
   chmod +x "$DOTFILES/scripts/notify.sh"
   link "$DOTFILES/claude/CLAUDE.md"       "$HOME/.claude/CLAUDE.md"
+  link "$DOTFILES/claude/RTK.md"          "$HOME/.claude/RTK.md"
   merge_hooks_json "$DOTFILES/claude/settings.json" "$HOME/.claude/settings.json"
   merge_hooks_json "$DOTFILES/codex/hooks.json"     "$HOME/.codex/hooks.json"
+  link "$DOTFILES/codex/AGENTS.md"        "$HOME/.codex/AGENTS.md"
+  link "$DOTFILES/codex/RTK.md"           "$HOME/.codex/RTK.md"
   link "$DOTFILES/codex/AGENTS.md"        "$HOME/AGENTS.md"
   link "$DOTFILES/gemini/GEMINI.md"       "$HOME/.gemini/GEMINI.md"
+  link "$DOTFILES/gemini/RTK.md"          "$HOME/.gemini/RTK.md"
+  link "$DOTFILES/gemini/hooks"           "$HOME/.gemini/hooks"
   merge_hooks_json "$DOTFILES/gemini/settings.json" "$HOME/.gemini/settings.json"
   link "$DOTFILES/gemini/policies"        "$HOME/.gemini/policies"
   # config.toml has machine-specific paths (MCP servers, project trust levels) — skip on follower

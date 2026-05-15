@@ -54,12 +54,19 @@ The `codex` shell wrapper automatically passes `-c features.hooks=true`. The ins
 |------|---------------|-------|
 | `~/.claude/settings.json` | `claude/settings.json` | Hooks config |
 | `~/.claude/CLAUDE.md` | `claude/CLAUDE.md` | Global instructions |
+| `~/.claude/RTK.md` | `claude/RTK.md` | RTK usage notes loaded by Claude |
 | `~/.codex/hooks.json` | `codex/hooks.json` | Hooks config |
 | `~/.codex/config.toml` | `codex/config.toml` | Model, features, trust levels, MCP servers |
+| `~/.codex/AGENTS.md` | `codex/AGENTS.md` | Global Codex instructions |
+| `~/.codex/RTK.md` | `codex/RTK.md` | RTK usage notes loaded by Codex |
 | `~/.codex/rules/` | `codex/rules/` | Auto-allow rules for Codex |
 | `~/.gemini/settings.json` | `gemini/settings.json` | Hooks config |
 | `~/.gemini/GEMINI.md` | `gemini/GEMINI.md` | Global instructions |
+| `~/.gemini/RTK.md` | `gemini/RTK.md` | RTK usage notes loaded by Gemini |
+| `~/.gemini/hooks/` | `gemini/hooks/` | Gemini shell-command rewrite hook |
 | `~/.gemini/policies/` | `gemini/policies/` | Auto-allow rules for Gemini |
+
+RTK is installed by Homebrew and reduces shell-output token usage. Claude and Gemini rewrite supported shell commands automatically through hooks. Codex loads `~/.codex/RTK.md`, which instructs it to prefix verbose shell commands with `rtk`. Check savings with `rtk gain`.
 
 tmux-resurrect directly relaunches `codex` panes after restore. `claude` and `gemini` panes are restored by `scripts/tmux-restore.sh`, which stages the command and then focuses each pane briefly before sending Enter so restored scrollback remains reachable.
 Snapshots are trimmed to the `main` session after each save so old side sessions do not bloat restore time.
@@ -138,6 +145,7 @@ The following are installed automatically by `install.sh`:
 - [eza](https://github.com/eza-community/eza)
 - [zoxide](https://github.com/ajeetdsouza/zoxide)
 - [fzf](https://github.com/junegunn/fzf)
+- [rtk](https://github.com/rtk-ai/rtk)
 - [zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions)
 - [JetBrainsMono Nerd Font](https://www.nerdfonts.com)
 
