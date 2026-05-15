@@ -4,6 +4,32 @@
     "pr": ""
   },
   "includeCoAuthoredBy": false,
+  "permissions": {
+    "allow": [
+      "Bash(rtk --version)",
+      "Bash(rtk ls:*)",
+      "Bash(rtk read:*)",
+      "Bash(rtk find:*)",
+      "Bash(rtk grep:*)",
+      "Bash(rtk smart:*)",
+      "Bash(rtk diff:*)",
+      "Bash(rtk wc:*)",
+      "Bash(rtk gain:*)",
+      "Bash(rtk discover:*)",
+      "Bash(rtk session:*)",
+      "Bash(rtk git status:*)",
+      "Bash(rtk git diff:*)",
+      "Bash(rtk git log:*)",
+      "Bash(rtk git show:*)",
+      "Bash(rtk gh pr list:*)",
+      "Bash(rtk gh pr view:*)",
+      "Bash(rtk gh pr diff:*)",
+      "Bash(rtk gh issue list:*)",
+      "Bash(rtk gh issue view:*)",
+      "Bash(rtk gh run list:*)",
+      "Bash(rtk gh run view:*)"
+    ]
+  },
   "hooks": {
     "UserPromptSubmit": [
       {
