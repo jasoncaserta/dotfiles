@@ -36,17 +36,17 @@ auto: 3m ago  manual: 1h ago
 Any command taking longer than 3 seconds triggers a macOS notification via Hammerspoon when it finishes. The notification title shows the command name; clicking it opens Ghostty quick terminal and jumps to the tmux tab where it ran. Threshold is configurable via `TERMINAL_ALERT_MIN_SECONDS`.
 
 **Claude, Codex, and Gemini notifications**
-They send notifications when they need attention, finish a turn, or hit a rate/token limit.
+They send notifications when they need attention, finish a turn, or hit a rate/token limit. Codex notifications are limited to the hooks installed in this repo.
 
 | Trigger | Claude | Codex | Gemini |
 |---------|--------|-------|--------|
 | Turn done | ✓ hook (`Stop`) | ✓ hook (`Stop`) | ✓ hook (`AfterAgent`) |
-| Asks a question | ✓ hook (`PreToolUse`) | ✓ stateful polling | ✓ hook (`BeforeTool`) |
-| Permission prompt | ✓ hook (`PermissionRequest`) | ✓ stateful polling | ✓ hook (`Notification`) |
+| Asks a question | ✓ hook (`PreToolUse`) | via `Stop`; no separate hook | ✓ hook (`BeforeTool`) |
+| Permission prompt | ✓ hook (`PermissionRequest`) | ✓ hook (`PermissionRequest`) | ✓ hook (`Notification`) |
 | Elicitation / MCP | ✓ hook (`Elicitation`) | ✗ | ✓ hook (`Notification`) |
-| Rate / token limit | ✓ hook (`StopFailure`) | ✓ stateful polling | ✓ (handled via `AfterAgent`) |
+| Rate / token limit | ✓ hook (`StopFailure`) | ✗ | ✓ (handled via `AfterAgent`) |
 
-Claude's `StopFailure` hook fires on any API error (rate limit, token limit, billing, etc.) and sends **"hit an error :("**. Codex detects limits via a stateful tmux-pane watcher and sends **"ran out of tokens :("** only on new blocking states.
+Claude's `StopFailure` hook fires on any API error (rate limit, token limit, billing, etc.) and sends **"hit an error :("**. Codex also uses `UserPromptSubmit` to clear tmux attention state when a new prompt is submitted; it does not send a notification.
 
 The `codex` shell wrapper automatically passes `-c features.hooks=true`. The installer sets up all AI tooling config:
 
