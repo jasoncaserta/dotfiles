@@ -7,6 +7,11 @@ TITLE="${1:-Notification}"
 MESSAGE="${2:-needs attention}"
 TARGET="${3:-}"
 PANE_ID="${3:-}"   # saved before TARGET is rewritten to session:window form
+CLEAR_ON_INPUT="${4:-1}"
+if [[ $# -lt 4 && "$MESSAGE" == "needs approval" ]]; then
+    CLEAR_ON_INPUT=0
+fi
+STICKY_NOTIFY="${5:-$([[ "$CLEAR_ON_INPUT" == "0" ]] && printf 1 || printf 0)}"
 
 # Normalize TARGET to session:window format for tmux switch-client
 if [[ -n "$TARGET" ]] && command -v tmux >/dev/null 2>&1; then
@@ -35,7 +40,7 @@ if [[ -n "$TARGET" ]] && command -v tmux >/dev/null 2>&1; then
     _dotfiles_dir=$(cat "$HOME/.config/dotfiles/path" 2>/dev/null || echo '')
     _clear_script="$_dotfiles_dir/scripts/tmux-clear-on-input.sh"
     _tmux_socket="${TMUX%%,*}"   # extract socket path from $TMUX env var
-    if [[ -x "$_clear_script" && -n "$_tmux_socket" ]]; then
+    if [[ "$CLEAR_ON_INPUT" != "0" && -x "$_clear_script" && -n "$_tmux_socket" ]]; then
         # Resolve pane ID and window ID — caller may pass %pane or @window.
         _pane_id=""
         _win_id=""
@@ -63,7 +68,7 @@ _b64() {
     printf '%s' "$1" | base64 | tr -d '\n' | sed 's|+|%2B|g; s|/|%2F|g; s|=|%3D|g'
 }
 
-url="hammerspoon://showNotify?title=$(_b64 "$TITLE")&message=$(_b64 "$MESSAGE")&target=$(_b64 "$TARGET")"
+url="hammerspoon://showNotify?title=$(_b64 "$TITLE")&message=$(_b64 "$MESSAGE")&target=$(_b64 "$TARGET")&sticky=$STICKY_NOTIFY"
 # Fire-and-forget; -g keeps Hammerspoon from stealing focus.
 ( open -g "$url" >/dev/null 2>&1 & ) >/dev/null 2>&1
 exit 0

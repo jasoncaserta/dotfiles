@@ -3,6 +3,7 @@ for _, n in ipairs(hs.notify.deliveredNotifications()) do n:withdraw() end
 hs.notify.withdrawAll()
 
 local pendingNotifications = {}
+local stickyNotifications = {}
 
 local function hasPendingNotifications()
     for _ in pairs(pendingNotifications) do
@@ -110,21 +111,25 @@ local function updateActiveWinKey()
 end
 
 local function dismissActiveIfPending()
-    if activeWinKey and pendingNotifications[activeWinKey] then
+    if activeWinKey and pendingNotifications[activeWinKey] and not stickyNotifications[activeWinKey] then
         dismissNotify(activeWinKey)
         hs.execute(tmuxBin .. " set-option -wuq -t '" .. activeWinKey .. "' @needs_attention 2>/dev/null; " .. tmuxBin .. " refresh-client -S 2>/dev/null")
     end
-    if pendingNotifications["__bare__"] then
+    if pendingNotifications["__bare__"] and not stickyNotifications["__bare__"] then
         dismissNotify("__bare__")
     end
 end
 
 -- Dismiss a pending notification by window key (e.g. "@116")
-function dismissNotify(winKey)
+function dismissNotify(winKey, force)
+    if stickyNotifications[winKey] and not force then
+        return
+    end
     local n = pendingNotifications[winKey]
     if n then
         n:withdraw()
         pendingNotifications[winKey] = nil
+        stickyNotifications[winKey] = nil
     end
 end
 
@@ -142,7 +147,7 @@ function dismissVisiblePending()
             local winId, _ = hs.execute(tmuxBin .. " display-message -c '" .. client .. "' -p '#{window_id}' 2>/dev/null")
             winId = winId:gsub("%s+$", "")
             local wk = extractWinKey(winId)
-            if wk ~= "" and pendingNotifications[wk] then
+            if wk ~= "" and pendingNotifications[wk] and not stickyNotifications[wk] then
                 dismissNotify(wk)
                 hs.execute(tmuxBin .. " set-option -wuq -t '" .. wk .. "' @needs_attention 2>/dev/null; " .. tmuxBin .. " refresh-client -S 2>/dev/null")
             end
@@ -155,6 +160,7 @@ function dismissAllNotify()
     for k, n in pairs(pendingNotifications) do
         n:withdraw()
         pendingNotifications[k] = nil
+        stickyNotifications[k] = nil
     end
 end
 
@@ -193,7 +199,7 @@ keyTap:start()
 clickTap:start()
 
 -- Notification helper invoked via the hammerspoon://showNotify URL event.
-function showNotify(title, message, windowId)
+function showNotify(title, message, windowId, sticky)
     local winKey = "__bare__"
     if windowId and windowId ~= "" then
         winKey = extractWinKey(windowId)
@@ -204,6 +210,7 @@ function showNotify(title, message, windowId)
     if winKey ~= "__bare__" then activeWinKey = winKey end
     local n = hs.notify.new(function()
         pendingNotifications[winKey] = nil
+        stickyNotifications[winKey] = nil
         openGhosttyQuickTerminal()
         if windowId and windowId ~= "" then
             local safeWindowId = shellSanitize(windowId)
@@ -228,6 +235,7 @@ function showNotify(title, message, windowId)
         pendingNotifications[winKey]:withdraw()
     end
     pendingNotifications[winKey] = n
+    stickyNotifications[winKey] = sticky == true or sticky == "1"
     n:send()
 end
 
@@ -246,12 +254,12 @@ urlEvent.bind("shownotify", function(_, params)
     local title = b64decode(params.title)
     local message = b64decode(params.message)
     local target = b64decode(params.target)
-    showNotify(title, message, target)
+    showNotify(title, message, target, params.sticky)
 end)
 
 urlEvent.bind("dismissnotify", function(_, params)
     if params.winKey and params.winKey ~= "" then
-        dismissNotify(params.winKey)
+        dismissNotify(params.winKey, params.force == "1")
     end
 end)
 
