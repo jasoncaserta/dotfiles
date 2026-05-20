@@ -1,27 +1,12 @@
 # RTK - Rust Token Killer
 
-**Rule**: Prefix verbose shell commands with `rtk` when using Codex.
-
-```bash
-rtk git status
-rtk git diff
-rtk cargo test
-rtk npm run build
-rtk pytest -q
-```
+Shell commands are automatically compressed by RTK via a PreToolUse hook — no manual prefixing needed.
 
 ## Meta Commands
 
 ```bash
-rtk gain
-rtk gain --history
-rtk proxy <cmd>
-```
-
-## Verification
-
-```bash
-rtk --version
-rtk gain
-which rtk
+rtk gain            # Token savings analytics
+rtk gain --history  # Recent command history
+rtk discover        # Find missed savings opportunities
+rtk proxy <cmd>     # Run raw command without filtering
 ```
