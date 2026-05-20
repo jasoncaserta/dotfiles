@@ -64,4 +64,3 @@ When context is large and tasks are small:
 - Start a new session
 - Provide a concise state summary
 
-@/Users/jasoncaserta/.codex/RTK.md
