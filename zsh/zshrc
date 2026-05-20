@@ -493,5 +493,6 @@ esac
 # pnpm end
 
 # zoxide as cd. Keep this at the end of the shell configuration.
+export _ZO_DOCTOR=0
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh --cmd cd)"
 export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"

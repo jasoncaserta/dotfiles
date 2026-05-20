@@ -76,13 +76,14 @@ source = "/Users/jasoncaserta/.cache/codex-runtimes/codex-primary-runtime/plugin
 
 [hooks.state."/Users/jasoncaserta/.codex/hooks.json:permission_request:0:0"]
 enabled = true
-trusted_hash = "sha256:85cb19c7e71410de23ae79290790d48c54949344f18c9bb9b98e217c7dbebfed"
+trusted_hash = "sha256:da86302e30fe5ae7e2d4f48f9c58fa682c93e59b56b93dcb4b3d16d8fe995947"
 
 [hooks.state."/Users/jasoncaserta/.codex/hooks.json:stop:0:0"]
 trusted_hash = "sha256:2bab40e98b19ab4ae0f7b645303ca69205e06552f1ce8b16e88dc3389a3750c2"
 
 [hooks.state."/Users/jasoncaserta/.codex/hooks.json:user_prompt_submit:0:0"]
-trusted_hash = "sha256:8d1b705189d3de3f397638095949827adabfbaaf1eda8b1d230f0f1b288123c7"
+enabled = true
+trusted_hash = "sha256:5f9ddf1db4f3a59b5020aa4425cd65703a1dabd2cc4648e6a63fe10bc39787a0"
 
 # Disabled MCP servers. Uncomment to re-enable.
 #
