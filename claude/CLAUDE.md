@@ -8,12 +8,14 @@
 
 ## Search Hygiene
 
+Use `rtk grep` for all searches — never bare `rg` or `/opt/homebrew/bin/rg`.
+
 Exclude noise dirs:
 node_modules/, dist/, __pycache__/, .venv/, .git/
 
-Pattern: rg --glob '!node_modules/**' --glob '!dist/**' --glob '!__pycache__/**' --glob '!.venv/**'
+Pattern: rtk grep '<pattern>' <path> --glob '!node_modules/**' --glob '!dist/**' --glob '!__pycache__/**' --glob '!.venv/**'
 
-- List files before reading (rg -l)
+- List files before reading: `rtk grep -l '<pattern>' <path>`
 - Read only necessary files/sections
 - Limit matches (e.g. -m 20)
 - Avoid unrelated context
@@ -25,7 +27,7 @@ Stop once sufficient information is found.
 ## Large File Reads
 
 - Avoid full reads unless required
-- Locate lines first (rg -n)
+- Locate lines first: `rtk grep -n '<pattern>' <path>`
 - Read only needed sections
 
 ## Iterative Edits
