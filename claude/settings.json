@@ -147,7 +147,7 @@
       "args": [
         "tsx",
         "--env-file=/Users/jasoncaserta/Projects/pickGPU/external-tools/.env",
-        "/Users/jasoncaserta/Projects/pickGPU/external-tools/devops/mcp_server.ts"
+        "/Users/jasoncaserta/Projects/pickGPU/external-tools/devops-mcp/mcp_server.ts"
       ]
     }
   }
