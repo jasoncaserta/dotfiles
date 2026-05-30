@@ -62,6 +62,16 @@
       }
     ]
   },
+  "mcpServers": {
+    "pickgpu-devops": {
+      "command": "npx",
+      "args": [
+        "tsx",
+        "--env-file=/Users/jasoncaserta/Projects/pickGPU/external-tools/.env",
+        "/Users/jasoncaserta/Projects/pickGPU/external-tools/devops/mcp_server.ts"
+      ]
+    }
+  },
   "security": {
     "auth": {
       "selectedType": "oauth-personal"
