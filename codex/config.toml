@@ -1,4 +1,4 @@
-model = "gpt-5.5"
+model = "gpt-5.4"
 model_reasoning_effort = "medium"
 
 notify = ["/Users/jasoncaserta/.codex/plugins/cache/openai-bundled/computer-use/1.0.770/Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient", "turn-ended"]
