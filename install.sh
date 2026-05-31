@@ -59,6 +59,75 @@ append_if_missing() {
   fi
 }
 
+# Merge agent settings from $src into $dst, preserving machine-local keys.
+# Applies hooks, permissions, and other dotfile settings from src into dst,
+# but never overwrites any key already present in dst. Safe to re-run; existing
+# local config is never clobbered.
+merge_settings_json() {
+  local src="$1" dst="$2"
+  mkdir -p "$(dirname "$dst")"
+  if [[ -L "$dst" && "$(readlink "$dst")" == "$DOTFILES"* ]]; then
+    green "  already symlinked to repo (skipped): $dst"
+    return
+  fi
+  if [[ ! -f "$dst" ]]; then
+    cp "$src" "$dst"
+    green "  created $dst"
+    return
+  fi
+  local tmp skipped_keys skipped_hooks skipped_mcp
+  tmp=$(mktemp)
+
+  skipped_keys=$(jq -rn --slurpfile d "$dst" --slurpfile s "$src" '
+    [($s[0] | keys[]) |
+      select(. != "mcpServers" and . != "hooks" and . != "permissions") |
+      select($d[0][.] != null and $d[0][.] != $s[0][.])
+    ] | join(", ")
+  ')
+
+  skipped_hooks=$(jq -rn --slurpfile d "$dst" --slurpfile s "$src" '
+    [($s[0].hooks // {}) | keys[] |
+      select(. as $k | ($d[0].hooks // {})[$k] != null and ($d[0].hooks // {})[$k] != ($s[0].hooks // {})[$k])
+    ] | join(", ")
+  ')
+
+  skipped_mcp=$(jq -rn --slurpfile d "$dst" --slurpfile s "$src" '
+    [($s[0].mcpServers // {}) | keys[] |
+      select(. as $k | ($d[0].mcpServers // {})[$k] != null and ($d[0].mcpServers // {})[$k] != ($s[0].mcpServers // {})[$k])
+    ] | join(", ")
+  ')
+
+  # Deep-merge: for every top-level key in src, copy it into dst only if dst
+  # doesn't already have it. Shared structured keys are merged below.
+  jq -s '
+    .[0] as $dst | .[1] as $src |
+    reduce ($src | keys[]) as $k (
+      $dst;
+      if ($k == "mcpServers" or $k == "hooks" or $k == "permissions") then . else
+        if .[$k] == null then .[$k] = $src[$k] else . end
+      end
+    ) |
+    if ($src.hooks // null) != null then
+      .hooks = (($dst.hooks // {}) + (($src.hooks // {}) | with_entries(select(.key as $k | ($dst.hooks // {})[$k] == null))))
+    else . end |
+    if ($src.mcpServers // null) != null then
+      .mcpServers = (($dst.mcpServers // {}) + (($src.mcpServers // {}) | with_entries(select(.key as $k | ($dst.mcpServers // {})[$k] == null))))
+    else . end |
+    if (($src.permissions.allow // null) != null or ($dst.permissions.allow // null) != null) then
+      .permissions.allow = ((($dst.permissions.allow // []) + ($src.permissions.allow // [])) | unique)
+    else . end
+  ' "$dst" "$src" > "$tmp" && mv "$tmp" "$dst"
+
+  green "  merged $dst"
+  if [[ -n "$skipped_keys" || -n "$skipped_hooks" || -n "$skipped_mcp" ]]; then
+    yellow "  WARNING: $dst has local conflicts — full dotfile install not applied"
+    [[ -n "$skipped_keys" ]] && yellow "    skipped keys (local differs): $skipped_keys"
+    [[ -n "$skipped_hooks" ]] && yellow "    skipped hook events (already defined): $skipped_hooks"
+    [[ -n "$skipped_mcp" ]] && yellow "    skipped MCP servers (already defined): $skipped_mcp"
+    yellow "    To apply dotfile values, remove conflicting keys from $dst and re-run install"
+  fi
+}
+
 # Merge hooks from $src into $dst using jq.
 # Adds hook entries for any event not already defined in $dst; skips events
 # that already exist so the user's existing hooks are never overwritten.
@@ -185,7 +254,7 @@ if [[ "$role" == leader ]]; then
   link "$DOTFILES/zsh/p10k.zsh"           "$HOME/.p10k.zsh"
   chmod +x "$DOTFILES/scripts/notify.sh"
 
-# ── follower: non-destructive includes + hook merge ───────────────────────────
+# ── follower: non-destructive includes + agent config links ───────────────────
 
 else
   append_if_missing "$HOME/.zshrc"    "source \"$DOTFILES/zsh/zshrc\""
@@ -200,17 +269,17 @@ else
   link "$DOTFILES/scripts/notify.sh"      "$HOME/.notify.sh"
   link "$DOTFILES/zsh/p10k.zsh"           "$HOME/.p10k.zsh"
   chmod +x "$DOTFILES/scripts/notify.sh"
+  merge_settings_json "$DOTFILES/claude/settings.json"   "$HOME/.claude/settings.json"
   link "$DOTFILES/claude/CLAUDE.md"       "$HOME/.claude/CLAUDE.md"
   link "$DOTFILES/claude/RTK.md"          "$HOME/.claude/RTK.md"
-  merge_hooks_json "$DOTFILES/claude/settings.json" "$HOME/.claude/settings.json"
   merge_hooks_json "$DOTFILES/codex/hooks.json"     "$HOME/.codex/hooks.json"
   link "$DOTFILES/codex/AGENTS.md"        "$HOME/.codex/AGENTS.md"
   link "$DOTFILES/codex/RTK.md"           "$HOME/.codex/RTK.md"
   link "$DOTFILES/codex/AGENTS.md"        "$HOME/AGENTS.md"
+  merge_settings_json "$DOTFILES/gemini/settings.json"   "$HOME/.gemini/settings.json"
   link "$DOTFILES/gemini/GEMINI.md"       "$HOME/.gemini/GEMINI.md"
   link "$DOTFILES/gemini/RTK.md"          "$HOME/.gemini/RTK.md"
   link "$DOTFILES/gemini/hooks"           "$HOME/.gemini/hooks"
-  merge_hooks_json "$DOTFILES/gemini/settings.json" "$HOME/.gemini/settings.json"
   link "$DOTFILES/gemini/policies"        "$HOME/.gemini/policies"
   # config.toml has machine-specific paths (MCP servers, project trust levels) — skip on follower
 fi

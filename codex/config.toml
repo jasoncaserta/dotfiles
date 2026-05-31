@@ -5,6 +5,7 @@ notify = ["/Users/jasoncaserta/.codex/plugins/cache/openai-bundled/computer-use/
 
 [features]
 hooks = true
+terminal_resize_reflow = true
 [projects."/Users/jasoncaserta/Projects"]
 trust_level = "trusted"
 
