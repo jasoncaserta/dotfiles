@@ -70,6 +70,9 @@
         "--env-file=/Users/jasoncaserta/Projects/pickGPU/external-tools/.env",
         "/Users/jasoncaserta/Projects/pickGPU/external-tools/devops-mcp/mcp_server.ts"
       ]
+    },
+    "pickgpu": {
+      "httpUrl": "https://pickgpu.com/mcp"
     }
   },
   "security": {

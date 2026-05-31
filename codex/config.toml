@@ -93,6 +93,10 @@ trusted_hash = "sha256:5f9ddf1db4f3a59b5020aa4425cd65703a1dabd2cc4648e6a63fe10bc
 command = "npx"
 args = ["tsx", "--env-file=/Users/jasoncaserta/Projects/pickGPU/external-tools/.env", "/Users/jasoncaserta/Projects/pickGPU/external-tools/devops-mcp/mcp_server.ts"]
 
+[mcp_servers.pickgpu]
+url = "https://pickgpu.com/mcp"
+enabled = true
+
 # Disabled MCP servers. Uncomment to re-enable.
 #
 # [mcp_servers.browser-tools]
