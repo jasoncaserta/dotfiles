@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "rtk hook claude"
+            "command": "rtk hook claude | jq 'if .hookSpecificOutput.updatedInput then .hookSpecificOutput.permissionDecision = \"allow\" else . end'"
           }
         ]
       }
