@@ -1,11 +1,13 @@
-model = "gpt-5.4"
+model = "gpt-5.6-luna"
 model_reasoning_effort = "medium"
 
-notify = ["/Users/jasoncaserta/.codex/plugins/cache/openai-bundled/computer-use/1.0.770/Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient", "turn-ended"]
+
+notify = ["/Users/jasoncaserta/.codex/computer-use/Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient", "turn-ended"]
 
 [features]
 hooks = true
 terminal_resize_reflow = true
+js_repl = false
 [projects."/Users/jasoncaserta/Projects"]
 trust_level = "trusted"
 
@@ -43,9 +45,6 @@ trust_level = "trusted"
 [plugins."github@openai-curated"]
 enabled = true
 
-[plugins."browser-use@openai-bundled"]
-enabled = true
-
 [plugins."documents@openai-primary-runtime"]
 enabled = true
 
@@ -55,24 +54,37 @@ enabled = true
 [plugins."presentations@openai-primary-runtime"]
 enabled = true
 
-[plugins."computer-use@openai-bundled"]
-enabled = true
-
 [plugins."google-calendar@openai-curated"]
 enabled = true
 
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[plugins."chrome@openai-bundled"]
+enabled = true
+
+[plugins."pdf@openai-primary-runtime"]
+enabled = true
+
+[plugins."computer-use@openai-bundled"]
+enabled = true
+
+[plugins."template-creator@openai-primary-runtime"]
+enabled = true
+
 [marketplaces.openai-bundled]
-last_updated = "2026-05-06T19:44:39Z"
+last_updated = "2026-06-26T23:13:10Z"
 source_type = "local"
 source = "/Users/jasoncaserta/.codex/.tmp/bundled-marketplaces/openai-bundled"
 
 [marketplaces.openai-primary-runtime]
-last_updated = "2026-05-06T19:45:15Z"
+last_updated = "2026-07-09T04:00:05Z"
 source_type = "local"
 source = "/Users/jasoncaserta/.cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime"
 
 [tui.model_availability_nux]
 "gpt-5.5" = 4
+"gpt-5.6-sol" = 4
 
 [hooks.state]
 
@@ -99,6 +111,30 @@ args = ["tsx", "--env-file=/Users/jasoncaserta/Projects/pickGPU/external-tools/.
 url = "https://pickgpu.com/mcp"
 enabled = true
 
+[mcp_servers.node_repl]
+args = []
+command = "/Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl"
+startup_timeout_sec = 120
+
+[mcp_servers.node_repl.env]
+NODE_REPL_NATIVE_PIPE_CONNECT_TIMEOUT_MS = "1000"
+NODE_REPL_NODE_MODULE_DIRS = "/Applications/Codex.app/Contents/Resources/cua_node/lib/node_modules"
+NODE_REPL_NODE_PATH = "/Applications/Codex.app/Contents/Resources/cua_node/bin/node"
+NODE_REPL_TRUSTED_CODE_PATHS = "/Users/jasoncaserta/.codex"
+CODEX_HOME = "/Users/jasoncaserta/.codex"
+NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "eb55d24cf065cd5311af6f99b16bade2b7a670790ff2db9accf60d012dd55dd1"
+BROWSER_USE_AVAILABLE_BACKENDS = "chrome,iab"
+NODE_REPL_INSTRUCTIONS_USE_CASE_BROWSER = "Control the in-app browser in conjunction with the Browser Plugin."
+NODE_REPL_INSTRUCTIONS_USE_CASE_CHROME = "Control the Chrome browser in conjunction with the Chrome Plugin. Prefer this method of controlling Chrome over alternatives (such as Computer Use) unless the user explicitly mentions an alternative."
+BROWSER_USE_CODEX_APP_BUILD_FLAVOR = "prod"
+BROWSER_USE_CODEX_APP_VERSION = "26.611.62324"
+CODEX_CLI_PATH = "/Applications/Codex.app/Contents/Resources/codex"
+
+[desktop]
+ambient-suggestions-enabled = false
+conversationDetailMode = "STEPS_COMMANDS"
+keepRemoteControlAwakeWhilePluggedIn = true
+
 # Disabled MCP servers. Uncomment to re-enable.
 #
 # [mcp_servers.browser-tools]
@@ -108,3 +144,30 @@ enabled = true
 # [mcp_servers.playwright]
 # command = "npx"
 # args = ["@playwright/mcp@latest", "--browser", "chromium"]
+
+[mcp_servers.google-analytics]
+command = "/Users/jasoncaserta/Projects/pickGPU/external-tools/google-analytics-mcp/.venv/bin/analytics-mcp"
+enabled = true
+
+[mcp_servers.google-analytics.env]
+GOOGLE_APPLICATION_CREDENTIALS = "/Users/jasoncaserta/Projects/pickGPU/external-tools/credentials/pickgpu-authorized-user.json"
+GOOGLE_PROJECT_ID = "pickgpu-growth-mcp"
+
+[mcp_servers.google-analytics.tools.get_account_summaries]
+approval_mode = "approve"
+
+[mcp_servers.google-search-console]
+command = "/Users/jasoncaserta/Projects/pickGPU/external-tools/mcp-gsc/.venv/bin/python"
+args = ["/Users/jasoncaserta/Projects/pickGPU/external-tools/mcp-gsc/gsc_server.py"]
+enabled = true
+
+[mcp_servers.google-search-console.env]
+GSC_OAUTH_CLIENT_SECRETS_FILE = "/Users/jasoncaserta/Projects/pickGPU/external-tools/credentials/client_secret_220022875186-h970odd0pa3n4c2gbn8ujtsebkjiqcev.apps.googleusercontent.com.json"
+GSC_CONFIG_DIR = "/Users/jasoncaserta/Projects/pickGPU/external-tools/mcp-gsc/.config"
+
+[mcp_servers.google-search-console.tools.list_properties]
+approval_mode = "approve"
+
+[mcp_servers.google-search-console.tools.inspect_url_enhanced]
+approval_mode = "approve"
+

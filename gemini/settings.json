@@ -79,5 +79,8 @@
     "auth": {
       "selectedType": "oauth-personal"
     }
+  },
+  "model": {
+    "name": "gemini-2.5-flash"
   }
 }

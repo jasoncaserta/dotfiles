@@ -30,6 +30,7 @@
       "Bash(rtk gh run view *)"
     ]
   },
+  "model": "sonnet",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -114,7 +115,8 @@
   },
   "enabledPlugins": {
     "codex@openai-codex": false,
-    "swift-lsp@claude-plugins-official": false
+    "swift-lsp@claude-plugins-official": false,
+    "frontend-design@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "openai-codex": {
@@ -125,6 +127,7 @@
     }
   },
   "effortLevel": "high",
+  "tui": "fullscreen",
   "preferredNotifChannel": "terminal_bell",
   "_disabledMcpServers": {
     "_comment": "Codex-side plugin/MCP integrations are intentionally parked here instead of deleted so they are easy to re-enable later without Claude loading them by default.",

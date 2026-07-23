@@ -1,1 +1,8 @@
 export PATH="/opt/homebrew/bin:$PATH"
+
+
+# Added by Antigravity CLI installer
+case ":$PATH:" in
+  *":/Users/jasoncaserta/.local/bin:"*) ;;
+  *) export PATH="/Users/jasoncaserta/.local/bin:$PATH" ;;
+esac

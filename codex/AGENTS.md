@@ -14,8 +14,9 @@ Exclude noise dirs:
 node_modules/, dist/, __pycache__/, .venv/, .git/
 
 Pattern: rtk grep '<pattern>' <path> --glob '!node_modules/**' --glob '!dist/**' --glob '!__pycache__/**' --glob '!.venv/**'
+For ripgrep passthrough flags such as file-only output, put them after `--`.
 
-- List files before reading: `rtk grep -l '<pattern>' <path>`
+- List files before reading: `rtk grep '<pattern>' <path> -- --files-with-matches`
 - Read only necessary files/sections
 - Limit matches (e.g. -m 20)
 - Avoid unrelated context
@@ -27,7 +28,7 @@ Stop once sufficient information is found.
 ## Large File Reads
 
 - Avoid full reads unless required
-- Locate lines first: `rtk grep -n '<pattern>' <path>`
+- Locate lines first: `rtk grep '<pattern>' <path>`
 - Read only needed sections
 
 ## Iterative Edits
@@ -65,4 +66,3 @@ Use `zsh -n <file>`. Do not source.
 When context is large and tasks are small:
 - Start a new session
 - Provide a concise state summary
-
